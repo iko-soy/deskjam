@@ -1,12 +1,13 @@
 /-  *deskjam
 ::
-|_  axn=action
+|_  =mapp
 ++  grad  %noun
 ++  grow
   |%
-  ++  noun  axn
+  ++  noun  mapp
   --
 ++  grab
   |%
-  ++  noun  action
+  ++  noun  ^mapp
+  --
 --

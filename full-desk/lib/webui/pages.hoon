@@ -1,1 +1,0 @@
-../../../bare-desk/lib/webui/pages.hoon

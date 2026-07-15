@@ -1,0 +1,42 @@
+imports:
+  base-dev: ./dist
+  landscape-dev: ./dist
+  fang-suite: ./dist
+  landscape-multipart: ./dist
+
+git module base-dev:
+  url: https://github.com/urbit/urbit
+  reup: 408k
+  export: pkg/base-dev
+  pick:
+    - pkg/base-dev/mar
+    - pkg/base-dev/lib
+    - pkg/base-dev/sur
+  rev: 6d7807318a9c335cb49b2217432da9d7557b6b0e
+
+git module landscape-dev:
+  url: https://github.com/tloncorp/landscape
+  reup: develop
+  export: desk-dev
+  pick:
+    - desk-dev/lib
+    - desk-dev/sur
+    - desk-dev/mar
+  drop:
+    - desk-dev/lib/mip.hoon
+  rev: 46c6ed8738082b6a94558710b1e3619befa83057
+
+git module landscape-multipart:
+  url: https://github.com/tloncorp/landscape
+  reup: develop
+  export: desk
+  pick:
+    - desk/lib/multipart.hoon
+  rev: 46c6ed8738082b6a94558710b1e3619befa83057
+
+git module fang-suite:
+  url: https://github.com/Fang-/suite
+  reup: master
+  pick:
+    - lib/rudder.hoon
+  rev: 2417ed8702547b04b6ee47a7db678e64cf82e18c
