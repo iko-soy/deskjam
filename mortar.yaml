@@ -1,0 +1,50 @@
+output: dist
+
+local docs-desk:
+  path: ./desk
+  priority: 100
+
+github base-dev:
+  repo: urbit/urbit
+  branch: master
+  root: pkg/base-dev
+  include:
+    - mar/bill.hoon
+    - mar/hoon.hoon
+    - mar/html.hoon
+    - mar/kelvin.hoon
+    - mar/mime.hoon
+    - mar/noun.hoon
+    - mar/txt-diff.hoon
+    - mar/txt.hoon
+    - lib/dbug.hoon
+    - lib/default-agent.hoon
+    - lib/server.hoon
+    - lib/skeleton.hoon
+    - lib/strand.hoon
+    - lib/strandio.hoon
+    - lib/verb.hoon
+    - sur/spider.hoon
+    - sur/verb.hoon
+  priority: 10
+  revision: 0a9a312e133891937de9c4df1ebecad5cf669c7c
+
+github landscape:
+  repo: tloncorp/landscape
+  branch: develop
+  root: desk
+  include:
+    - mar/docket-0.hoon
+    - lib/docket.hoon
+    - lib/multipart.hoon
+    - sur/docket.hoon
+  priority: 9
+  revision: 46c6ed8738082b6a94558710b1e3619befa83057
+
+github fang-suite:
+  revision: 2417ed8702547b04b6ee47a7db678e64cf82e18c
+  repo: Fang-/suite
+  branch: master
+  include:
+    - lib/rudder.hoon
+  priority: 8
