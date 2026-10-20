@@ -27,6 +27,8 @@ It also fixes two security problems in upstream deskjam. These fixes are always 
 
 If you reach your ship over plain http through a reverse proxy that changes the `Host` header, the proxy has to tell your ship the address the browser used. Otherwise deskjam refuses its own forms, with a message that says so. Passing on the browser's `Host` works (in nginx, `proxy_set_header Host $http_host;`), and so does an `X-Forwarded-Host` header, which Apache adds by default, or `Forwarded: host="..."`.
 
+The tile icon is part of the docket, url-encoded, where upstream's comes from a web server. deskjam only reaches outside your ship when you upload from a url.
+
 See [Installing and updating apps](#installing-and-updating-apps) for details, and [Replacing upstream deskjam](#replacing-upstream-deskjam) to switch to this fork.
 
 ## Building
@@ -35,7 +37,7 @@ You can build the full `%deskjam` desk with the [`mortar` build tool available h
 
 Or, with Nix with flakes enabled, run `nix build`, which writes the same desk to `result`. `flake.nix` pins the same dependencies as `mortar.yaml`, so change them together. Nix only sees files git knows about, so after adding a file to `desk`, run `git add` (or any `jj` command, such as `jj status`) before `nix build`.
 
-The app's tile icon, [`assets/deskjam.svg`](assets/deskjam.svg), is a copy of upstream's. `desk/desk.docket-0` links to it on GitHub, so it has to stay at that path on `main`.
+The app's tile icon, [`assets/deskjam.svg`](assets/deskjam.svg), is a copy of upstream's. `desk/desk.docket-0` carries it url-encoded, as a `data:` URL, so Landscape shows it without loading anything, including in previews on other ships before they install deskjam. After changing the icon, put its new URL in the docket's `image`, from `python3 -c 'import urllib.parse as u; print("data:image/svg+xml," + u.quote(open("assets/deskjam.svg").read(), safe=""))'`. `nix build` checks that the two match.
 
 ## Installation
 1. Clone this repo: `git clone https://github.com/iko-soy/deskjam`.

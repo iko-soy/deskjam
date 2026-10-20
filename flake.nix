@@ -75,16 +75,24 @@
           }
         ];
 
+        # desk/desk.docket-0 carries the tile icon, url-encoded, as a data
+        # url. Check that it's still assets/deskjam.svg.
+        iconUrl = "data:image/svg+xml,${lib.escapeURL (builtins.readFile ./assets/deskjam.svg)}";
+        iconMatches = lib.hasInfix "image+'${iconUrl}'" (builtins.readFile ./desk/desk.docket-0);
+
         # The full desk, as `mortar build` writes it to dist/.
-        deskjam = pkgs.runCommand "deskjam" { } ''
-          ${lib.concatMapStrings (
-            { from, paths }:
-            lib.concatMapStrings (path: ''
-              install -D -m 644 ${from}/${path} $out/${path}
-            '') paths
-          ) imports}
-          cp -r --no-preserve=mode ${./desk}/. $out
-        '';
+        deskjam =
+          assert lib.assertMsg iconMatches
+            "desk/desk.docket-0's image isn't assets/deskjam.svg, url-encoded. See Building in the README.";
+          pkgs.runCommand "deskjam" { } ''
+            ${lib.concatMapStrings (
+              { from, paths }:
+              lib.concatMapStrings (path: ''
+                install -D -m 644 ${from}/${path} $out/${path}
+              '') paths
+            ) imports}
+            cp -r --no-preserve=mode ${./desk}/. $out
+          '';
       in
       {
         packages = {
