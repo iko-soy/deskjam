@@ -1,16 +1,16 @@
 /-  *deskjam
 /+  webui, rudder, server, dbug, verb, default-agent,
-    j=deskjam
+    j=deskjam, ju=deskjam-url
 ::
 /$  deskpack-0-to-mime  %deskpack-0  %mime
 /$  deskjam-to-deskpack-0  %deskjam  %deskpack-0
 ::
 |%
-+$  state-0   [%0 data]
++$  state-1   [%1 data]
 +$  card      card:agent:gall
 --
 ::
-=|  state-0
+=|  state-1
 =*  state  -
 ::
 %-  agent:dbug
@@ -20,22 +20,23 @@
 |_  =bowl:gall
 +*  this  .
     def   ~(. (default-agent this %|) bowl)
-    jc    ~(. j [our now]:bowl)
     hc    ~(. +> bowl)
 ::
 ++  on-init
   ^-  (quip card _this)
   :_  this
   [%pass /eyre/connect %arvo %e %connect [~ /apps/[dap.bowl]] dap.bowl]~
-  
-:::
+::
 ++  on-save  !>(state)
 ::
 ++  on-load
   |=  ole=vase
   ^-  (quip card _this)
-  =/  old=state-0  !<(state-0 ole)
-  [~ this(state old)]
+  ::  the state only holds an upload in progress, so start afresh from
+  ::  any state we can't read
+  ::
+  ?~  old=(mole |.(!<(state-1 ole)))  `this
+  `this(state u.old)
 ::
 ++  on-poke
   |=  [=mark =vase]
@@ -64,60 +65,55 @@
       ?~  files
         (simple-deskjam:hc eyre-id desk)
       (simple-sub-deskjam:hc eyre-id desk files)
-    :: clear staged on index visit
+    :: visiting the index starts afresh
     ::
-    =?  staged  ?=([%apps %deskjam ~] site)  ~
+    =?  +.state  ?=([%apps %deskjam ~] site)  *data
     :: use rudder to serve pages
     ::
     =/  pages  make-pages:hc
     =;  out=(quip card data)
       [-.out this(+.state +.out)]
-    %.  [bowl [eyre-id inbound-request] staged dest]
+    %.  [bowl [eyre-id inbound-request] +.state]
     %:  (steer:rudder data action)
       pages
       (point:rudder /apps/[dap.bowl] & ~(key by pages))
-      (fours:rudder staged dest)
+      (fours:rudder +.state)
       |=  axn=action
       ^-  $@  brief:rudder
           [brief:rudder (list card) data]
+      ?^  err=(reject:hc axn)  u.err
       =^  caz  this
         (on-poke %deskjam-action !>(axn))
-      ['Processed succesfully.' caz staged dest]
+      [(brief:hc axn) caz +.state]
     ==
     ::
       %deskjam-action
-    =/  axn  !<(action vase)
     ?>  =(src our):bowl
+    =/  axn  !<(action vase)
+    ?^  err=(reject:hc axn)
+      (mean leaf+(trip u.err) ~)
     ?-    -.axn
         %stage-mapp
-      `this(staged [~ now.bowl [desk mapp]:axn])
+      `this(staged `[now.bowl [desk mapp]:axn], fetching ~)
       ::
         %url-thread
-      :_(this ~[(run-url-thread-card url.axn)])
+      =/  url=@t  (unfrag:jc:hc url.axn)
+      :_  this(staged ~, fetching `[now.bowl url ~])
+      ~[(url-thread-card:hc now.bowl url)]
       ::
         %set-dest
-      `this(dest [~ [mode desk]:axn])
+      `this(dest `[mode desk]:axn)
       ::
-        %new-desk
-      ?>  =(src our):bowl
-      ?>  ?=(^ dest)
-      ?>  ?=(%n mode.u.dest)
-      ?>  ?=(^ staged)  =,  u.staged
-      ?<  (~(has in desks:hc) desk.u.dest)
-      :_(this [(new-desk-card desk.u.dest stage-mapp)]~)
+        ?(%commit %new-desk %add-files)
+      =/  [revive=? pause=?]
+        ?:(?=(%commit -.axn) [revive pause]:axn [| |])
+      =/  pan=plan  current-plan:hc
+      =/  caz=(list card)  (commit-cards:hc pan revive pause)
+      =.  sent  `[desk.pan rev.pan held.pan |(live.pan revive)]
+      ::  the older pokes kept the upload staged, so keep doing that
       ::
-        %add-files
-      ?>  =(src our):bowl
-      ?>  ?=(^ dest)
-      ?>  ?=(%m mode.u.dest)
-      ?>  ?=(^ staged)  =,  u.staged
-      ?>  (~(has in desks:hc) desk.u.dest)
-      =/  src=(set path)  ~(key by stage-mapp)
-      =/  snk=(set path)  (desk-files:hc desk.u.dest)
-      =/  conflict=(set path)  (~(int in src) snk)
-      :: this overwrites conflicting filepaths
-      :_  this
-      [(add-files-card stage-mapp desk.u.dest conflict)]~
+      =?  +.state  ?=(%commit -.axn)  +.state(staged ~, dest ~)
+      [caz this]
     ==
   ==
 ::
@@ -142,14 +138,44 @@
       [dap.bowl 'eyre bind rejected!' binding.sign-arvo]
     [~ this]
     ::
+      [?(%new-desk %put-files %revive) *]
+    ::  clay doesn't answer these, but don't crash if it ever does
+    ::
+    [~ this]
+    ::
       [%url-thread ~]
-    ?>  ?=([%khan %arow %.y %noun *] sign-arvo)
-    =/  [%khan %arow %.y %noun result=vase]  sign-arvo
-    =/  =jam  !<(jam result)
-    :_  this
-    :~  :*  %pass  /  %agent  [our dap]:bowl  %poke 
-            %deskjam-action  !>([%stage-mapp (deskjam-to-deskpack-0 jam)])
-    ==  ==
+    ::  a fetch started by an older version of deskjam
+    ::
+    [~ this]
+    ::
+      [%url-thread @ ~]
+    ?>  ?=([%khan %arow *] sign-arvo)
+    ::  ignore fetches the user has since moved on from
+    ::
+    =/  id=@da  (slav %da i.t.wire)
+    ?.  &(?=(^ fetching) =(id id.u.fetching))
+      [~ this]
+    =*  url  url.u.fetching
+    ?:  ?=(%| -.p.sign-arvo)
+      ::  a failed thread's tang starts with its error term
+      ::
+      =*  gof  p.p.sign-arvo
+      =/  tan=tang  tang.gof
+      =/  cause=(unit @t)
+        ?.  &(?=(%thread-fail mote.gof) ?=([@ *] tan))  ~
+        `i.tan
+      =?  tan  ?=(^ cause)  ?>(?=(^ tan) t.tan)
+      =/  why=@t
+        ?^  tan  (crip (zing (join "; " (turn tan |=(=tank ~(ram re tank))))))
+        ?~  cause  mote.gof
+        ?:  =(%cancelled u.cause)  'the fetch was stopped; try again'
+        u.cause
+      [~ this(fetching `[id url `why])]
+    =/  pack=(unit deskpack)
+      (mole |.((deskjam-to-deskpack-0 !<(@ q.p.p.sign-arvo))))
+    ?~  pack
+      [~ this(fetching `[id url `'it isn\'t a deskjam'])]
+    [~ this(staged `[now.bowl u.pack], fetching ~)]
   ==
 ::
 ++  on-leave  on-leave:def
@@ -158,41 +184,117 @@
 |_  =bowl:gall
 ++  sour  (scot %p our.bowl)
 ++  snow  (scot %da now.bowl)
-++  desks  .^((set desk) %cd /[sour]//[snow])
+++  jc  ~(. j [our now]:bowl)
 ::
-++  new-desk-card
-  |=  [=desk =mapp]
-  ^-  card
-  [%pass /new-desk/[desk] %arvo (new-desk:cloy desk ~ mapp)]
+::  +current-plan: what committing the staged upload to .dest would do
 ::
-++  add-files-card
-  |=  [=mapp to=desk conflict=(set path)]
-  ^-  card
-  =;  =soba:clay
-    [%pass /put-files/[to] %arvo %c %info to %& soba]
-  %+  turn  ~(tap by mapp)
-  |=  [=path =mark cont=*]
-  ?:  (~(has in conflict) path)
-    [path %mut mark !>(cont)]
-  [path %ins mark !>(cont)]
+++  current-plan
+  ^-  plan
+  ?>  ?=(^ staged)
+  ?>  ?=(^ dest)
+  (make-plan:jc u.dest [stage-desk stage-mapp]:u.staged)
 ::
-++  run-url-thread-card
-  |=  url=@t
+::  +reject: why an action can't be done, if it can't
+::
+++  reject
+  |=  axn=action
+  ^-  (unit @t)
+  ?-    -.axn
+      %stage-mapp  ~
+  ::
+      %url-thread
+    ::  iris never answers a url it can't parse
+    ::
+    ?~  out=(sendable:ju url.axn)
+      `'Give an http or https url.'
+    ~
+  ::
+  ::  any dest may be set, as before; the web form checks it, and the
+  ::  commit checks the plan
+  ::
+      %set-dest  ~
+  ::
+      ?(%commit %new-desk %add-files)
+    ?~  staged
+      ?~  sent  `'Nothing is staged. Upload a deskjam first.'
+      %-  some
+      %-  crip
+      "The upload was committed to %{(trip desk.u.sent)}. Upload a deskjam to commit another."
+    ?~  dest  `'Choose a desk for the upload first.'
+    ?:  &(?=(%new-desk -.axn) !?=(%n mode.u.dest))
+      `'%new-desk needs a new desk as the destination.'
+    ?:  &(?=(%add-files -.axn) !?=(%m mode.u.dest))
+      `'%add-files needs a desk to merge into as the destination.'
+    =/  pan=plan  current-plan
+    ?^  errors.pan  `i.errors.pan
+    ?:  &(?=(%commit -.axn) revive.axn !live.pan ?=(^ revive.pan))
+      `(crip "%{(trip desk.pan)} can't be started: {(trip u.revive.pan)}.")
+    ~
+  ==
+::
+::  +brief: what to tell the user an action did
+::
+++  brief
+  |=  axn=action
+  ^-  brief:rudder
+  ?+  -.axn  ~
+    %stage-mapp  'Upload staged.'
+  ==
+::
+::  +commit-cards: commit the staged upload as .pan says
+::
+::    one clay commit, so a build failure aborts all of it. reviving in
+::    the same event means agents that fail to start abort it too.
+::
+++  commit-cards
+  |=  [pan=plan revive=? pause=?]
+  ^-  (list card)
+  ?>  ?=(^ staged)
+  =*  mapp  stage-mapp.u.staged
+  =/  stop=(list card)
+    ?.  &(pause ?=(^ source.pan))  ~
+    :_  ~
+    :*  %pass  /pause/[desk.pan]  %agent  [our.bowl %hood]
+        %poke  %kiln-pause  !>(desk.pan)
+    ==
+  =/  commit=(list card)
+    ?:  ?=(%n mode.pan)
+      [%pass /new-desk/[desk.pan] %arvo (new-desk:cloy desk.pan ~ mapp)]~
+    ::  leave out files we know are unchanged: the commit is the same
+    ::  without them, and unchanged /sys files would set off a kernel
+    ::  update on %base
+    ::
+    =/  =soba:clay
+      %+  weld
+        ^-  soba:clay
+        (turn ~(tap in dels.pan) |=(=path [path %del ~]))
+      ^-  soba:clay
+      %+  murn  ~(tap by mapp)
+      |=  [=path =page:clay]
+      ^-  (unit [^path miso:clay])
+      ?:  &((~(has in same.pan) path) exact:(stored-lobes:jc path page))
+        ~
+      ?:  (~(has in adds.pan) path)
+        `[path %ins p.page !>(q.page)]
+      `[path %mut p.page !>(q.page)]
+    ?~  soba  ~
+    [%pass /put-files/[desk.pan] %arvo %c %info desk.pan %& soba]~
+  =/  start=(list card)
+    ?.  &(revive !live.pan)  ~
+    [%pass /revive/[desk.pan] %arvo %c %zest desk.pan %live]~
+  :(weld stop commit start)
+::
+++  url-thread-card
+  |=  [id=@da url=@t]
   ^-  card
-  :*  %pass  /url-thread  %arvo  %k  %fard
-      %deskjam  %deskjam-url  %noun
+  :*  %pass  /url-thread/(scot %da id)  %arvo  %k  %fard
+      q.byk.bowl  %deskjam-url  %noun
       !>((some url))
   ==
 ::
-++  desk-files
-  |=  =desk
-  ^-  (set path)
-  %-  ~(gas in *(set path))
-  .^((list path) %ct /[sour]/[desk]/[snow])
-::
 ++  page-paths
   ^-  (list path)
-  ~[/index /staged /confirm /subset]
+  ~[/index /staged /confirm /subset /status]
 ::
 ++  make-pages
   %-  ~(gas by *(map @ta (page:rudder data action)))
@@ -225,6 +327,12 @@
   |=  file=path
   ?.((~(has in desk-files) file) ~ (some file))
 ::
+++  desk-files
+  |=  =desk
+  ^-  (set path)
+  %-  ~(gas in *(set path))
+  .^((list path) %ct /[sour]/[desk]/[snow])
+::
 ++  desk-to-mime
   |=  =desk
   ^-  mime
@@ -253,7 +361,7 @@
 ++  simple-sub-deskjam
   |=  [=eyre-id =desk files=(list path)]
   ^-  (list card)
-  =/  jamm  (subdesk-to-mime desk files) 
+  =/  jamm  (subdesk-to-mime desk files)
   %+  give-simple-payload:app:server  eyre-id
   :_  [~ q.jamm]
   :-  200

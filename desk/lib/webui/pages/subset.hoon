@@ -5,7 +5,7 @@
 +*  hc  ~(. h [our now]:bowl)
 ++  page
   ^-  manx
-  ;hmtl
+  ;html
     ;head
       ;title:"%deskjam"
       ;meta(charset "utf-8");

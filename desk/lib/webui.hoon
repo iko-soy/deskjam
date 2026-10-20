@@ -18,6 +18,7 @@
     [%staged ~]   staged
     [%confirm ~]  confirm
     [%subset ~]   subset
+    [%status ~]   status
   ==
 ::
 ++  index
@@ -30,8 +31,7 @@
     ?~  parts
       =/  args=(map @t @t)
         ?~(body ~ (frisk:rudder q.u.body))
-
-      ?~  url=(~(get by args) 'url')  ~
+      ?~  url=(~(get by args) 'url')  'Give a url to fetch.'
       [%url-thread u.url]
     =/  jam=(unit jam)
       %-  lint:hc
@@ -42,20 +42,22 @@
       ?+  n  ~
         %file  [~ `jam`body:p]
       ==
-    ?~  jam   ~
-    [%stage-mapp (deskjam-to-deskpack-0 u.jam)]
+    ?~  jam  'Choose a file to upload.'
+    ?~  pack=(mole |.((deskjam-to-deskpack-0 u.jam)))
+      'That file isn\'t a deskjam.'
+    [%stage-mapp u.pack]
   ::
   ++  final
     %+  alert:rudder
       (spat /apps/[dap.bowl]/staged)
-    ~(build staged +<)
+    build
   ::
   ++  build
     |=  $:  arg=(list [k=@t v=@t])
             msg=(unit [o=? =@t])
         ==
     ^-  reply:rudder
-    [%page ~(page index:w [bowl data])]
+    [%page ~(page index:w [bowl data msg])]
   --
 ::
 ++  staged
@@ -66,53 +68,116 @@
     ^-  $@(brief:rudder action)
     =/  args=(map @t @t)
       ?~(body ~ (frisk:rudder q.u.body))
-    =/  old-desk=(unit desk)  (~(get by args) 'old-desk')
-    =/  new-desk=(unit desk)  (~(get by args) 'new-desk')
-    ?+  d=[old-desk new-desk]  !!
-      [^ ~]  [%set-dest %m u.-.d]
-      [~ ^]  [%set-dest %n u.+.d]
-    ==
+    =/  choice=(unit [=mode dex=@t])
+      ::  the fields of deskjam's older form
+      ::
+      ?^  old=(~(get by args) 'old-desk')  `[%m u.old]
+      ?^  new=(~(get by args) 'new-desk')  `[%n u.new]
+      =/  how=(unit mode)
+        ?+  (~(get by args) 'mode')  ~
+          [~ %n]  `%n
+          [~ %r]  `%r
+          [~ %m]  `%m
+        ==
+      ?~  how  ~
+      `[u.how (fall (~(get by args) 'desk') '')]
+    ?~  choice  'Choose what to do with the upload.'
+    ?~  staged.data  'Nothing is staged. Upload a deskjam first.'
+    =,  u.choice
+    ?:  ?=(%n mode)
+      ?:  =('' dex)  'Give the new desk a name.'
+      ?.  ((sane %tas) dex)
+        %-  crip
+        "%{(trip dex)} isn't a valid desk name. Use lowercase letters, numbers and hyphens, starting with a letter."
+      ?:  (desk-exists:hc dex)
+        (crip "A desk called %{(trip dex)} already exists.")
+      [%set-dest mode dex]
+    ?:  =('' dex)  'Choose a desk.'
+    ?.  (desk-exists:hc dex)
+      (crip "There is no desk called %{(trip dex)}.")
+    [%set-dest mode dex]
   ::
   ++  final
     %+  alert:rudder
       (spat /apps/[dap.bowl]/confirm)
-    ~(build confirm +<)
+    build
   ::
   ++  build
     |=  $:  arg=(list [k=@t v=@t])
             msg=(unit [o=? =@t])
         ==
     ^-  reply:rudder
-    [%page ~(page staged:w [bowl data])]
+    [%page ~(page staged:w [bowl data msg])]
   --
 ::
 ++  confirm
   |_  [=bowl:gall * =data]
-  +*  hc  ~(. h [our now]:bowl)
   ++  argue
     |=  [headers=header-list:http body=(unit octs)]
     ^-  $@(brief:rudder action)
     =/  args=(map @t @t)
       ?~(body ~ (frisk:rudder q.u.body))
-    =/  rags=[? ?]
-      :-  (~(has by args) 'add-files')
-      (~(has by args) 'new-desk')
-    ?+  rags  !!
-      [%& %|]  [%add-files ~]
-      [%| %&]  [%new-desk ~]
-    ==
+    ::  the buttons of deskjam's older form
+    ::
+    ?:  (~(has by args) 'add-files')  [%add-files ~]
+    ?:  (~(has by args) 'new-desk')  [%new-desk ~]
+    ?.  (~(has by args) 'commit')  ~
+    ::  if the form says what it showed, refuse to commit anything else
+    ::
+    =/  shown=(list (unit @t))
+      (turn ~['mode' 'desk' 'upload'] ~(get by args))
+    =/  now=(list (unit @t))
+      :~  (bind dest.data |=([=mode =desk] `@t`mode))
+          (bind dest.data |=([=mode =desk] `@t`desk))
+          (bind staged.data |=([=time *] (scot %da time)))
+      ==
+    ::  (with nothing staged, the commit says what happened instead)
+    ::
+    ?:  ?&  ?=(^ staged.data)
+            (lien shown |=(a=(unit @t) ?=(^ a)))
+            !=(shown now)
+        ==
+      'The upload or its destination changed after this page was shown. Check them again, then confirm.'
+    [%commit (~(has by args) 'revive') (~(has by args) 'pause')]
+  ::
+  ::  after a commit, show the desk it went to
   ::
   ++  final
-    %+  alert:rudder
-      (spat /apps/[dap.bowl])
-    ~(build index +<)
+    |=  [done=? =brief:rudder]
+    ^-  reply:rudder
+    ?.  done  (build ~ `[| `@t`brief])
+    =/  dex=@t  ?~(sent.data %$ desk.u.sent.data)
+    [%next (rap 3 (spat /apps/[dap.bowl]/status) '?desk=' dex ~) brief]
   ::
   ++  build
     |=  $:  arg=(list [k=@t v=@t])
             msg=(unit [o=? =@t])
         ==
     ^-  reply:rudder
-    [%page ~(page confirm:w [bowl data])]
+    [%page ~(page confirm:w [bowl data msg])]
+  --
+::
+++  status
+  |_  [=bowl:gall * =data]
+  ++  argue
+    |=  [headers=header-list:http body=(unit octs)]
+    ^-  $@(brief:rudder action)
+    ~
+  ::
+  ++  final  (alert:rudder (spat /apps/[dap.bowl]) build)
+  ::
+  ++  build
+    |=  $:  arg=(list [k=@t v=@t])
+            msg=(unit [o=? =@t])
+        ==
+    ^-  reply:rudder
+    =/  raw=(unit @t)
+      =/  got  (~(get by (malt arg)) 'desk')
+      ?:(=([~ ''] got) ~ got)
+    =/  dex=(unit desk)  (biff raw (sand %tas))
+    =?  msg  &(?=(^ raw) ?=(~ dex))
+      `[| (crip "%{(trip u.raw)} isn't a valid desk name.")]
+    [%page ~(page status:w [bowl data dex msg])]
   --
 ::
 ++  subset

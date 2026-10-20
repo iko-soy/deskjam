@@ -1,5 +1,29 @@
 # deskjam
 
+## How this fork differs
+
+This is a fork of [tinnus-napbus/deskjam](https://github.com/tinnus-napbus/deskjam). It adds support for installing and updating apps by uploading `.deskjam` files.
+
+Everything upstream deskjam does still works the same way, and stays the default:
+
+- Merging an upload into an existing desk still writes its files and keeps the desk's other files.
+- New desks still start suspended.
+- Downloads, subsets and url uploads work as before.
+- The old form fields and the old `%new-desk` and `%add-files` pokes still work.
+
+What's new is opt-in:
+
+- **Replace**: update a desk so it becomes exactly the upload. Files the upload lacks are deleted, so files a new version of an app removed or renamed don't linger.
+- **Start after upload**: optionally `|revive` the desk in the same commit.
+- **Stop kiln syncing**: optionally `|pause` a desk that kiln overwrites from a publisher, so the next update doesn't undo yours.
+- **A fuller confirm page**: before committing, it lists the files that will be deleted, added, changed and left alone, and checks the upload against what Clay will do. It refuses only commits Clay would reject or ignore anyway, plus replacing `%base` or `%kids` and replaces that would stop a desk's agents. Everything else, including desks that are synced from elsewhere, gets a warning.
+- **A status page**: after each commit, it says whether the upload landed and whether the desk is running.
+- **Url uploads**: they follow redirects and send escapes like `%20` as written, so GitHub release links work. When a fetch fails, they say why.
+
+See [Installing and updating apps](#installing-and-updating-apps) for details. Upgrading from upstream deskjam drops any upload you had staged but not yet committed.
+
+## Building
+
 You can build the full `%deskjam` desk with the [`mortar` build tool available here](https://github.com/tinnus-napbus/mortar).
 
 ## Installation
@@ -17,3 +41,27 @@ You can build the full `%deskjam` desk with the [`mortar` build tool available h
 1. To download a desk as a jam file go to `[your-domain-name]/apps/deskjam/download`.
 2. To download a subset of the files in this desk as a jam file click the desk name on this page.
 3. To upload a jammed desk go to `[your-domain-name]/apps/deskjam` and follow the instructions there.
+
+## Installing and updating apps
+
+Upload a deskjam on `[your-domain-name]/apps/deskjam`, from a file or a url. The next page describes the upload (its app, kernel version and agents) and asks where it should go:
+
+- **Install it as a new desk.** New desks start suspended, as with `|new-desk`. On the confirm page you can tick "start its agents after uploading", which does what `|revive` does.
+- **Update an existing desk**, in one of two ways:
+  - **Merge**, the default, writes the upload's files and leaves the desk's other files in place.
+  - **Replace** makes the desk exactly the upload: files the upload lacks are deleted. Use this to update an app, so files a new version removed or renamed don't linger.
+
+Every upload is a single Clay commit. When the desk is running, Clay rebuilds its agents as part of that commit and reloads those whose code changed. If a file or agent fails to build, or a running agent fails to load its state, Clay rejects the whole commit. The desk stays as it was, the browser shows an error, and your ship's dojo shows why. (An agent that is new to the desk and crashes as it starts doesn't stop the commit.)
+
+Before you confirm, deskjam lists the files it will delete, add and change, the files that stay the same, and for a merge the files it leaves in place. Files it can't compare, because it doesn't know how their mark stores them, are listed as files that may change. Files that stay the same are left out of the commit. It also checks the upload. It only refuses what Clay would reject or ignore anyway, such as a desk without `/sys/kelvin`, a kelvin no kernel can use, or a file with no mark to convert it. It also refuses two things only the new replace option could do: replacing `%base` or `%kids`, or dropping a desk's `/desk/bill` and so stopping all its agents. Everything else is a warning:
+
+- When the upload's agents already run from another running desk. Committing it to a running desk moves them over, and every later kernel update then fails with `cannot run app from two desks`. deskjam won't offer to start a desk in that state.
+- When the upload is built for a different kernel than your ship runs. If it only supports newer kernels, Clay holds it until your ship upgrades, and nothing changes now. For `%base`, deskjam applies Clay's rules for kernel updates and says whether the commit would change your ship's kernel right away or wait.
+- When the desk is overwritten from outside: kiln keeps it in sync with another desk, as with an app installed with `|install ~publisher %desk`, or copies another desk's updates into it, as with `%kids` and `%base`. The source's next update would undo yours. Tick "stop kiln syncing" to do what `|pause` does. The desk list on the staged page marks synced desks, and the status page warns again after a commit if the sync is still on.
+- When the upload changes nothing, when merging would leave files behind, when the upload is a copy of a differently named desk, and when merging into `%base`.
+
+The confirm page only commits what it showed you. If the upload or its destination changed in another tab, it asks you to check again.
+
+After the commit deskjam shows the desk's status. That covers its revision, whether it is running, its agents, the kernel it is for, whether kiln syncs it, and whether the upload made a new revision. If the upload matched what the desk already had, or Clay is holding it for a newer kernel, there is no new revision. If the desk should have started but didn't, the status page says so.
+
+Url uploads follow redirects and send escapes like `%20` as written (the runtime on its own would decode them), so links to GitHub release assets work. If a fetch fails, the staged page says why.

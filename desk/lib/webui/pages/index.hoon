@@ -1,8 +1,7 @@
 /-  *deskjam
-/+  sty=webui-styles, scr=webui-scripts, img=webui-images, h=deskjam
-|_  [=bowl:gall data]
+/+  sty=webui-styles, scr=webui-scripts, h=deskjam, par=webui-parts
+|_  [=bowl:gall data msg=(unit [o=? =@t])]
 +*  hc  ~(. h [our now]:bowl)
-    mapp  ?~(staged ~ stage-mapp.u.staged)
 ++  page
   ^-  manx
   ;html
@@ -16,6 +15,7 @@
       ;script: {download-form:scr}
     ==
     ;body
+      ;*  (banner:par msg)
       ;+  upload-jamfile
       ;br;
       ;br;
@@ -27,7 +27,7 @@
   ^-  manx
   ;div(style "max-width: 50ch; width: 100%")
     ;h2: upload deskjam
-    ;p: Upload a deskjam from your computer or a url.
+    ;p: Upload a deskjam from your computer or a url. Next you choose whether to install it as a new desk or update an existing one.
     ;br;
     ;form
       =method   "post"
