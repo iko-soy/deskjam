@@ -24,7 +24,19 @@
 ::  the desk should be running after it
 ::
 +$  sent  (unit [=desk rev=@ud held=? start=?])
+::  $data: an upload in progress
+::
+::    .glob: if set, the commit's /desk/docket-0 has our ship serve the
+::    app's glob, with this hash
+::
 +$  data
+  $:  =staged
+      dest=(unit [=mode =desk])
+      =fetching
+      =sent
+      glob=(unit @uvH)
+  ==
++$  data-1
   $:  =staged
       dest=(unit [=mode =desk])
       =fetching
@@ -34,7 +46,12 @@
 +$  action
   $%  [%stage-mapp =desk =mapp]
       [%url-thread url=@t]
+      ::  %url-thread, optionally fetching from this machine or the
+      ::  local network
+      ::
+      [%fetch url=@t local=?]
       [%set-dest =mode =desk]
+      [%set-glob hash=(unit @uvH)]
       [%commit revive=? pause=?]
       ::  %commit without options, for dests of mode %n and %m
       ::

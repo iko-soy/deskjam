@@ -4,3 +4,7 @@ dist-dev
 .peru
 .mortar
 result
+# the fakezod harness's pier, pill and other things it makes
+tests/fakezod/.work/
+# deskjams packed in the repo, as docs/deploying.md shows
+*.deskjam

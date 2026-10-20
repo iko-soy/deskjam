@@ -4,9 +4,9 @@
 +*  hc  ~(. h [our now]:bowl)
 ++  page
   ^-  manx
-  ;html
+  ;html(lang "en")
     ;head
-      ;title: Deskjam
+      ;title: {?~(dex "Deskjam: status" "Deskjam: status of %{(trip u.dex)}")}
       ;meta(charset "utf-8");
       ;meta
         =name     "viewport"
@@ -16,11 +16,23 @@
     ;body
       ;a/"/apps/deskjam": return home
       ;*  (banner:par msg)
-      ;+  ?~  dex
-            ?^  msg  ;div;
-            ;p: No desk given.
+      ;+  ?~  dex  choose
           (report u.dex)
     ==
+  ==
+::
+::  +choose: ask which desk to show
+::
+++  choose
+  ^-  manx
+  ;form(method "get", action "/apps/deskjam/status", class "justified-form")
+    ;select(name "desk", required "required", aria-label "desk")
+      ;*  %+  turn  (sort ~(tap in desks:hc) aor)
+          |=  =desk
+          ^-  manx
+          ;option(value (trip desk)): {(trip desk)}
+    ==
+    ;button(type "submit"): status
   ==
 ::
 ::  +report: the state of a desk, and whether our last commit landed
@@ -70,6 +82,12 @@
         ;td: kernel
         ;td: {?~(kel "unknown" (wefts-tape:hc u.kel))}
       ==
+      ;*  ?~  ref=(glob-ref:hc doc)  ~
+          :_  ~
+          ;tr
+            ;td: glob
+            ;td: {(glob-tape:hc u.ref)}
+          ==
       ;tr
         ;td: synced
         ;td
@@ -114,6 +132,15 @@
     ?.  &(start.u.sent !held.u.sent !?=(%live liv.dom))  ~
     :_  ~
     ;p.bad: Clay didn't start {nom}. Your ship's dojo shows why.
+  ^-  marl
+  %+  weld
+    ^-  marl
+    ::  as with |new-desk, a new desk starts suspended unless asked
+    ::
+    ?.  &(!start.u.sent !held.u.sent !?=(%live liv.dom) !=(%kids desk))
+      ~
+    :_  ~
+    ;p: {nom} is suspended, so its agents don't run, and Landscape shows no tile for an app that has never run. To start it, run |revive {nom} in the dojo, which says why if it can't.
   ^-  marl
   ?~  syn  ~
   =/  stop=tape  ?^(via.i.syn "" ". Run |pause {nom} to stop that")

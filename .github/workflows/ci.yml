@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      # all of the history: Nix can refuse a shallow clone as a flake
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: cachix/install-nix-action@v31.11.2
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      # builds the desk, checks mortar.yaml against flake.nix, and runs the
+      # Hoon unit tests in tests/hoon
+      - run: nix flake check -L
+
+  fakezod:
+    name: fakezod smoke test
+    # on pull requests, and by hand from the Actions tab
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      # all of the history: Nix can refuse a shallow clone as a flake
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: cachix/install-nix-action@v31.11.2
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Read the pill's pinned sha256
+        id: pill
+        run: |
+          source tests/fakezod/env.sh
+          echo "sha256=$PILL_SHA256" >> "$GITHUB_OUTPUT"
+      - name: Cache the pill
+        uses: actions/cache@v6.1.0
+        with:
+          path: tests/fakezod/.work/dl
+          key: urbit-pill-${{ steps.pill.outputs.sha256 }}
+      - name: Boot a fakezod and install deskjam
+        run: tests/fakezod/bootstrap.sh -n
+      - name: Smoke test
+        run: tests/fakezod/smoke-test.sh
+      - name: Stop the ship
+        if: always()
+        run: tests/fakezod/stop.sh || true
+      - name: Upload the ship's log and the pages the smoke test got
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: fakezod-log
+          path: |
+            tests/fakezod/.work/zod.log
+            tests/fakezod/.work/tmp/smoke/
+          if-no-files-found: ignore

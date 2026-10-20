@@ -1,6 +1,5 @@
 /-  *deskjam
 /+  rudder, multipart, w=webui-pages, h=deskjam
-/$  deskjam-to-deskpack-0  %deskjam  %deskpack-0
 |%
 ++  path-to-term
   |=  =path
@@ -17,8 +16,65 @@
     [%index ~]    index
     [%staged ~]   staged
     [%confirm ~]  confirm
+    [%glob ~]     glob
     [%subset ~]   subset
     [%status ~]   status
+  ==
+::
+::  +trust: a page's message, unless a link could have forged it
+::
+::    rudder shows any GET's ?rmsg= as a success message, so a link
+::    from anywhere could show its own text as if deskjam said it, on
+::    the pages that install code. deskjam only ever sends this one.
+::
+++  trust
+  |=  msg=(unit [o=? =@t])
+  ^+  msg
+  ?.  &(?=(^ msg) o.u.msg)  msg
+  ?:(=('Upload staged.' t.u.msg) msg ~)
+::
+::  +file-part: the file a one-part multipart upload holds
+::
+::    +de-request:multipart parses the whole body as a list of bytes,
+::    two list cells per byte, which can run the ship out of memory
+::    for a desk of a few tens of MB. deskjam's form sends the file as
+::    its only part, so find it with atom operations instead. ~ if the
+::    body isn't that.
+::
+++  file-part
+  |=  [headers=header-list:http body=(unit octs)]
+  ^-  (unit @)
+  ?~  body  ~
+  ?~  cot=(get-header:http 'content-type' headers)  ~
+  ?.  =('multipart/form-data; boundary=' (end 3^30 u.cot))  ~
+  =/  dim=@t  (cat 3 '--' (rsh 3^30 u.cot))
+  =*  len  p.u.body
+  =*  dat  q.u.body
+  ::  the part's headers end at its first blank line
+  ::
+  =/  top=tape  (trip (end [3 4.096] dat))
+  ?.  =((trip (cat 3 dim '\0d\0a')) (scag (add 2 (met 3 dim)) top))  ~
+  ?~  sep=(find "\0d\0a\0d\0a" top)  ~
+  ?~  (find "Content-Disposition: form-data; name=\"file\"" (scag u.sep top))
+    ~
+  =/  start=@ud  (add 4 u.sep)
+  =/  tail=@t  (rap 3 '\0d\0a' dim '--\0d\0a' ~)
+  =/  tal=@ud  (met 3 tail)
+  ?:  (lth len (add start tal))  ~
+  ?.  =(tail (cut 3 [(sub len tal) tal] dat))  ~
+  `(cut 3 [start (sub (sub len tal) start)] dat)
+::
+::  +stage: stage an uploaded file, or say why it can't be
+::
+++  stage
+  |=  got=(each deskpack ?(%not %bomb))
+  ^-  $@(brief:rudder action)
+  ?-  -.got
+    %&  [%stage-mapp p.got]
+    %|  ?-  p.got
+          %not   'That file isn\'t a deskjam.'
+          %bomb  'That file unpacks to far more than its size, as only a crafted file would, so deskjam won\'t read it.'
+        ==
   ==
 ::
 ++  index
@@ -27,25 +83,23 @@
   ++  argue
     |=  [headers=header-list:http body=(unit octs)]
     ^-  $@(brief:rudder action)
+    ?^  fil=(file-part headers body)
+      (stage (unpack:hc u.fil))
     =/  parts  (de-request:multipart headers body)
     ?~  parts
       =/  args=(map @t @t)
         ?~(body ~ (frisk:rudder q.u.body))
       ?~  url=(~(get by args) 'url')  'Give a url to fetch.'
-      [%url-thread u.url]
-    =/  jam=(unit jam)
+      [%fetch u.url (~(has by args) 'local')]
+    =/  jam=(unit @)
       %-  lint:hc
-      ^-  (list jam)
+      ^-  (list @)
       %+  murn  u.parts
       |=  [n=@t p=part:multipart]
-      ^-  (unit jam)
-      ?+  n  ~
-        %file  [~ `jam`body:p]
-      ==
+      ^-  (unit @)
+      ?.(=('file' n) ~ `body.p)
     ?~  jam  'Choose a file to upload.'
-    ?~  pack=(mole |.((deskjam-to-deskpack-0 u.jam)))
-      'That file isn\'t a deskjam.'
-    [%stage-mapp u.pack]
+    (stage (unpack:hc u.jam))
   ::
   ++  final
     %+  alert:rudder
@@ -57,7 +111,7 @@
             msg=(unit [o=? =@t])
         ==
     ^-  reply:rudder
-    [%page ~(page index:w [bowl data msg])]
+    [%page ~(page index:w [bowl data (trust msg)])]
   --
 ::
 ++  staged
@@ -107,11 +161,12 @@
             msg=(unit [o=? =@t])
         ==
     ^-  reply:rudder
-    [%page ~(page staged:w [bowl data msg])]
+    [%page ~(page staged:w [bowl data (trust msg)])]
   --
 ::
 ++  confirm
   |_  [=bowl:gall * =data]
+  +*  hc  ~(. h [our now]:bowl)
   ++  argue
     |=  [headers=header-list:http body=(unit octs)]
     ^-  $@(brief:rudder action)
@@ -122,21 +177,28 @@
     ?:  (~(has by args) 'add-files')  [%add-files ~]
     ?:  (~(has by args) 'new-desk')  [%new-desk ~]
     ?.  (~(has by args) 'commit')  ~
-    ::  if the form says what it showed, refuse to commit anything else
+    ::  if the form says what it showed, refuse to commit anything
+    ::  else. compare only what it says, as a page shown by an older
+    ::  deskjam says less.
     ::
     =/  shown=(list (unit @t))
-      (turn ~['mode' 'desk' 'upload'] ~(get by args))
+      (turn ~['mode' 'desk' 'upload' 'rev' 'glob'] ~(get by args))
     =/  now=(list (unit @t))
       :~  (bind dest.data |=([=mode =desk] `@t`mode))
           (bind dest.data |=([=mode =desk] `@t`desk))
           (bind staged.data |=([=time *] (scot %da time)))
+          (bind dest.data |=([=mode =desk] (crip (a-co:co (desk-rev:hc desk)))))
+          `?~(glob.data '' (scot %uv u.glob.data))
       ==
+    =/  changed=?
+      |-  ^-  ?
+      ?~  shown  |
+      ?~  now  |
+      ?:  &(?=(^ i.shown) !=(i.shown i.now))  &
+      $(shown t.shown, now t.now)
     ::  (with nothing staged, the commit says what happened instead)
     ::
-    ?:  ?&  ?=(^ staged.data)
-            (lien shown |=(a=(unit @t) ?=(^ a)))
-            !=(shown now)
-        ==
+    ?:  &(?=(^ staged.data) changed)
       'The upload or its destination changed after this page was shown. Check them again, then confirm.'
     [%commit (~(has by args) 'revive') (~(has by args) 'pause')]
   ::
@@ -145,15 +207,58 @@
   ++  final
     |=  [done=? =brief:rudder]
     ^-  reply:rudder
+    =/  status=@t
+      =/  dex=@t  ?~(sent.data %$ desk.u.sent.data)
+      (rap 3 (spat /apps/[dap.bowl]/status) '?desk=' dex ~)
+    ::  a second click on confirm finds the upload committed: show what
+    ::  became of it, as the first click did
+    ::
+    ?:  &(!done ?=(~ staged.data) ?=(^ sent.data))
+      [%next status ~]
     ?.  done  (build ~ `[| `@t`brief])
-    =/  dex=@t  ?~(sent.data %$ desk.u.sent.data)
-    [%next (rap 3 (spat /apps/[dap.bowl]/status) '?desk=' dex ~) brief]
+    [%next status brief]
   ::
   ++  build
     |=  $:  arg=(list [k=@t v=@t])
             msg=(unit [o=? =@t])
         ==
     ^-  reply:rudder
+    [%page ~(page confirm:w [bowl data (trust msg)])]
+  --
+::
+::  +glob: the confirm page's form for serving the app's glob from
+::  our ship
+::
+++  glob
+  |_  [=bowl:gall * =data]
+  ++  argue
+    |=  [headers=header-list:http body=(unit octs)]
+    ^-  $@(brief:rudder action)
+    =/  args=(map @t @t)
+      ?~(body ~ (frisk:rudder q.u.body))
+    ?:  (~(has by args) 'clear')  [%set-glob ~]
+    =/  txt=tape
+      %+  skip  (trip (fall (~(get by args) 'hash') ''))
+      |=(c=@t |(=(' ' c) =('\09' c) =('\0a' c) =('\0d' c)))
+    ?~  hash=(slaw %uv (crip txt))
+      'Give the glob\'s hash as a docket writes it, starting with 0v.'
+    [%set-glob hash]
+  ::
+  ++  final
+    |=  [done=? =brief:rudder]
+    ^-  reply:rudder
+    ?:  done  [%next (spat /apps/[dap.bowl]/confirm) ~]
+    (build ~ `[| `@t`brief])
+  ::
+  ::  the form is on the confirm page, which shows its errors too
+  ::
+  ++  build
+    |=  $:  arg=(list [k=@t v=@t])
+            msg=(unit [o=? =@t])
+        ==
+    ^-  reply:rudder
+    =.  msg  (trust msg)
+    ?~  msg  [%next (spat /apps/[dap.bowl]/confirm) ~]
     [%page ~(page confirm:w [bowl data msg])]
   --
 ::
@@ -171,26 +276,22 @@
             msg=(unit [o=? =@t])
         ==
     ^-  reply:rudder
+    =.  msg  (trust msg)
     =/  raw=(unit @t)
       =/  got  (~(get by (malt arg)) 'desk')
       ?:(=([~ ''] got) ~ got)
     =/  dex=(unit desk)  (biff raw (sand %tas))
     =?  msg  &(?=(^ raw) ?=(~ dex))
-      `[| (crip "%{(trip u.raw)} isn't a valid desk name.")]
+      `[| 'That isn\'t a valid desk name.']
     [%page ~(page status:w [bowl data dex msg])]
   --
 ::
 ++  subset
-  |_  [=bowl:gall * data]
+  |_  [=bowl:gall * =data]
   +*  hc  ~(. h [our now]:bowl)
   ++  argue
     |=  [headers=header-list:http body=(unit octs)]
     ^-  $@(brief:rudder action)
-    =/  args=(map @t @t)
-      ?~(body ~ (frisk:rudder q.u.body))
-    =/  pax=(list path)
-      (turn ~(tap in ~(key by args)) (curr rash stap))
-    :: ~&  (turn pax spat)
     ~
   ::
   ++  final  (alert:rudder (spat /apps/[dap.bowl]) build)
@@ -200,10 +301,13 @@
             msg=(unit [o=? =@t])
         ==
     ^-  reply:rudder
-    =/  dex=desk
-      %-  need
-      %-  (sand %tas)
-      (~(got by (~(gas by *(map @t @t)) arg)) 'desk')
+    =/  raw=@t  (fall (~(get by (malt arg)) 'desk') '')
+    =/  dex=(each desk tape)
+      ?~  d=?:(=('' raw) ~ ((sand %tas) raw))
+        |+"Give a desk to choose files from, as ?desk=name."
+      ?.  (has-files:hc u.d)
+        |+"There is no desk called %{(trip u.d)} with files to choose from."
+      &+u.d
     [%page ~(page subset:w [bowl dex])]
   --
 --

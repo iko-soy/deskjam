@@ -4,14 +4,15 @@
 +*  hc  ~(. h [our now]:bowl)
 ++  page
   ^-  manx
-  ;html
+  ;html(lang "en")
     ;head
-      ;title: Deskjam
+      ;title: Deskjam: choose where the upload goes
       ;meta(charset "utf-8");
       ;meta
         =name     "viewport"
         =content  "width=device-width, initial-scale=1";
       ;*  ?.  &(?=(~ staged) ?=([~ * * ~] fetching))  ~
+          ?.  (waiting u.fetching)  ~
           ::  check back while a url upload is in progress
           ::
           :_  ~
@@ -19,17 +20,30 @@
       ;style: {global:sty}
     ==
     ;body
+      ;+  icons:par
       ;a/"/apps/deskjam": return home
       ;*  (banner:par msg)
       ;+  ?^  staged  (choose u.staged)
           ?~  fetching
             ?^  msg  ;div;
             ;p: Nothing is staged. Upload a deskjam first.
-          ?~  err.u.fetching
-            ;p: Fetching {(trip url.u.fetching)}...
-          ;p.bad: Couldn't upload {(trip url.u.fetching)}: {(trip u.err.u.fetching)}
+          ?^  err.u.fetching
+            ;p.bad: Couldn't upload {(trip url.u.fetching)}: {(trip u.err.u.fetching)}
+          ?.  (waiting u.fetching)
+            ;p.bad: The fetch of {(trip url.u.fetching)} never finished. Go home and try again.
+          ;p: Fetching {(trip url.u.fetching)}...
     ==
   ==
+::
+::  +waiting: whether a fetch could still answer
+::
+::    the thread gives up after ten minutes, but its answer can still
+::    get lost, as when a kernel update suspends deskjam meanwhile
+::
+++  waiting
+  |=  [id=@da url=@t err=(unit @t)]
+  ^-  ?
+  &(?=(~ err) (lth now.bowl (add id ~m11)))
 ::
 ::  +choose: describe the upload, and ask where it should go
 ::
@@ -76,7 +90,7 @@
     ;div.box
       ;p: Update an existing desk:
       ;form(method "post")
-        ;select(name "desk", required "required")
+        ;select(name "desk", required "required", aria-label "desk to update")
           ;*  ?:  exists  ~
               :_  ~
               ;option(value "", disabled "disabled", selected "selected"): choose a desk
@@ -113,19 +127,23 @@
       ;form(method "post")
         ;input(type "hidden", name "mode", value "n");
         ;input
-          =type      "text"
-          =name      "desk"
-          =value     ?:(exists "" (trip from))
-          =required  "required"
-          =pattern   "[a-z][a-z0-9\\-]*"
-          =size      "16";
+          =type        "text"
+          =name        "desk"
+          =value       ?:(exists "" (trip from))
+          =required    "required"
+          =pattern     "[a-z][a-z0-9\\-]*"
+          =aria-label  "new desk name"
+          =size        "16";
         ;button(type "submit"): next
       ==
     ==
     ;h2: files
-    ;table
-      ;*  (tree:par from (files-to-hierarchy:hc ~(tap in ~(key by mapp))))
-    ==
+    ;*  =/  [shown=(list path) more=@ud]
+          (display-paths:hc ~(tap in ~(key by mapp)))
+        :-  ;table
+              ;*  (tree:par from (files-to-hierarchy:hc shown))
+            ==
+        (more:par more)
   ==
 ::
 ::  +kelvin-note: which kernels the upload is for, and whether that's us
@@ -133,7 +151,7 @@
 ++  kelvin-note
   |=  kel=(unit (set weft))
   ^-  tape
-  ?~  kel  "unknown: the upload has no readable /sys/kelvin"
+  ?~  kel  "unknown: the upload has no /sys/kelvin that deskjam can read"
   =/  ours  "[%zuse {(a-co:co zuse)}]"
   =/  tag=tape
     ?-  (kelvin-fate:hc u.kel)

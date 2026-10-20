@@ -14,17 +14,21 @@
     flex-direction: column;
   }
   input, select, textarea, button, label {font-size: large}
+  select { max-width: 100%; }
+  p, li { overflow-wrap: anywhere; }
   table {
     font-size: large;
   }
   .box {
     border: 1px black;
     width: fit-content;
+    max-width: 100%;
     border-style: solid;
   }
   .justified-form {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: space-between;
   }
   .ok { color: #070; }

@@ -4,9 +4,9 @@
 +*  hc  ~(. h [our now]:bowl)
 ++  page
   ^-  manx
-  ;html
+  ;html(lang "en")
     ;head
-      ;title: Deskjam
+      ;title: Deskjam: confirm
       ;meta(charset "utf-8");
       ;meta
         =name     "viewport"
@@ -14,6 +14,7 @@
       ;style: {global:sty}
     ==
     ;body
+      ;+  icons:par
       ;a/"/apps/deskjam": return home
       ;*  (banner:par msg)
       ;+  ?~  staged
@@ -28,14 +29,16 @@
             ;p: Nothing is staged. Upload a deskjam first.
           ?~  dest
             ;p: Choose a desk for the upload first.
-          (view u.staged (make-plan:hc u.dest [stage-desk stage-mapp]:u.staged))
+          =*  up  u.staged
+          =/  pack=mapp  (with-glob:hc u.dest stage-mapp.up glob)
+          (view u.dest up (make-plan:hc u.dest stage-desk.up pack))
     ==
   ==
 ::
 ::  +view: what the commit would do, and a button to do it
 ::
 ++  view
-  |=  [[when=time from=desk =mapp] pan=plan]
+  |=  [[=mode =desk] [when=time from=desk =mapp] pan=plan]
   ^-  manx
   =/  nom=tape  "%{(trip desk.pan)}"
   =/  title=tape
@@ -69,15 +72,20 @@
                 ;li: {(trip w)}
           ==
         ==
+    ;*  (glob-box [mode desk] mapp pan)
     ;*  ?^  errors.pan  ~
         :_  ~
-        ;form(method "post")
+        ::  explicit, as the glob form's errors show this page at its url
+        ::
+        ;form(method "post", action "/apps/deskjam/confirm")
           ::  what this page shows, so a stale page can't commit
           ::  something else
           ::
           ;input(type "hidden", name "mode", value (trip mode.pan));
           ;input(type "hidden", name "desk", value (trip desk.pan));
           ;input(type "hidden", name "upload", value (scow %da when));
+          ;input(type "hidden", name "rev", value (a-co:co rev.pan));
+          ;input(type "hidden", name "glob", value ?~(glob "" (scow %uv u.glob)));
           ;*  (options pan)
           ;button(type "submit", name "commit", value "y"): confirm
         ==
@@ -108,8 +116,76 @@
   ^-  marl
   ?.  exists.pan  ~
   =/  has=tape  ?:(=("" old) "" ", with {old} installed")
+  %+  weld
+    ^-  marl
+    :_  ~
+    ;p: {nom} is at revision {(a-co:co rev.pan)} and is {(zest-tape:hc zest.pan)}{has}.
+  ^-  marl
+  ::  a copy to undo the update with
+  ::
+  ?:  =(0 rev.pan)  ~
+  =/  link=manx
+    ;a(href "/apps/deskjam/download?desk={(trip desk.pan)}"): download {nom} as it is now
   :_  ~
-  ;p: {nom} is at revision {(a-co:co rev.pan)} and is {(zest-tape:hc zest.pan)}{has}.
+  ?:  |(=(%base desk.pan) =(%kids desk.pan))
+    ;p
+      ; You can first
+      ;+  link
+      ;+  ;/  ", but deskjam won't replace {nom}, so it can't put that copy back for you."
+    ==
+  ;p
+    ; To be able to undo this, first
+    ;+  link
+    ; . Uploading that copy and choosing Replace puts it back. That usually fails safely when the update changed the state an agent keeps, as the old agent can't load it, and Clay refuses the commit; but an agent that starts afresh from state it can't read, as deskjam does, loses that state instead. If the update changed the hash of a glob your ship serves, also upload the old frontend at /docket/upload.
+  ==
+::
+::  +glob-box: the app's glob, and the option to serve it from our ship
+::
+::    a glob is an app's web frontend, which landscape's %docket agent
+::    fetches as the desk's docket says. when the docket says our ship
+::    serves it, its hash has to match the glob %docket holds, or the
+::    app has no frontend. the hash changes with every frontend build,
+::    so setting it here saves keeping it in the app's repo.
+::
+++  glob-box
+  |=  [[=mode =desk] =mapp pan=plan]
+  ^-  marl
+  =/  up=(unit glob-reference:dock)
+    (glob-ref:hc (upload-docket:hc [mode desk] mapp))
+  ?~  up  ~
+  =/  now=(unit glob-reference:dock)
+    ?.  exists.pan  ~
+    (glob-ref:hc (biff (desk-page:hc desk /desk/docket-0) read-docket:hc))
+  ::  offer the hash of the glob our ship serves now, if it does
+  ::
+  =/  fill=@uvH  ?:((served-here:hc now) hash:(need now) hash.u.up)
+  :_  ~
+  ;div.box
+    ;p: This app's web frontend is a glob, which its docket says to fetch {(glob-tape:hc u.up)}.
+    ;+  ?^  glob
+          ;form(method "post", action "/apps/deskjam/glob")
+            ;p: deskjam will set the docket to have this ship serve it, with hash {(scow %uv u.glob)}.
+            ;button(type "submit", name "clear", value "y"): leave the docket as uploaded
+          ==
+        ;form(method "post", action "/apps/deskjam/glob")
+          ;label
+            ; serve it from this ship instead, with hash
+            ;input
+              =type        "text"
+              =name        "hash"
+              =value       (scow %uv fill)
+              =size        "40"
+              =required    "required"
+              =aria-label  "glob hash";
+          ==
+          ;button(type "submit", name "set", value "y"): set
+        ==
+    ;p
+      ; Setting the hash reloads this page, which clears the boxes below, so set it first. It writes the hash into the desk's docket here, so the app's repo doesn't need it. Your ship's %docket then serves the glob with that hash, to you and to ships that install the app from you. If your ship doesn't have that glob yet, upload it at
+      ;a/"/docket/upload": /docket/upload
+      ;+  ;/  " once the app is running."
+    ==
+  ==
 ::
 ::  +options: whether to start the desk, and to stop kiln syncing it
 ::
@@ -152,11 +228,15 @@
     ?~  source.pan  ~
     =*  sud  desk.u.source.pan
     =*  her  ship.u.source.pan
+    =/  from=tape  "{(weld "%" (trip sud))} on {(scow %p her)}"
+    =/  back=tape
+      =/  as=tape  ?:(=(sud desk.pan) "" ", =local {nom}")
+      "|install {(scow %p her)} {(weld "%" (trip sud))}{as}"
     :~  ;label
           ;input(type "checkbox", name "pause", value "y");
-          ; stop kiln syncing {nom} from {(weld "%" (trip sud))} on {(scow %p her)} (|pause {nom})
+          ; stop kiln syncing {nom} from {from} (|pause {nom})
         ==
-        ;br;
+        ;p: That stops every update from {from}, not just the next one, and kiln forgets where {nom} came from. To get their updates again, run {back}, which replaces your upload with their latest release.
     ==
   ::  what Clay checks in the commit itself
   ::
@@ -190,7 +270,8 @@
   ^-  (unit manx)
   ?:  =(~ pax)  ~
   =/  sum=tape  "{name} ({(a-co:co ~(wyt in pax))})"
-  =/  rows=marl  (tree:par desk.pan (files-to-hierarchy:hc ~(tap in pax)))
+  =/  [shown=(list path) more=@ud]  (display-paths:hc ~(tap in pax))
+  =/  rows=marl  (tree:par desk.pan (files-to-hierarchy:hc shown))
   :-  ~
   ?.  open
     ;details
@@ -198,11 +279,13 @@
       ;table
         ;*  rows
       ==
+      ;*  (more:par more)
     ==
   ;details(open "open")
     ;summary: {sum}
     ;table
       ;*  rows
     ==
+    ;*  (more:par more)
   ==
 --

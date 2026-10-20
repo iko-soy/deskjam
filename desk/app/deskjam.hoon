@@ -1,16 +1,16 @@
-/-  *deskjam
+/-  *deskjam, spider
 /+  webui, rudder, server, dbug, default-agent,
     j=deskjam, ju=deskjam-url
 ::
 /$  deskpack-0-to-mime  %deskpack-0  %mime
-/$  deskjam-to-deskpack-0  %deskjam  %deskpack-0
 ::
 |%
-+$  state-1   [%1 data]
++$  state-2   [%2 data]
++$  state-1   [%1 data-1]
 +$  card      card:agent:gall
 --
 ::
-=|  state-1
+=|  state-2
 =*  state  -
 ::
 ::  no verb wrapper: it takes /verb/events subscriptions from any ship
@@ -41,8 +41,10 @@
   ::  the state only holds an upload in progress, so start afresh from
   ::  any state we can't read
   ::
+  ?^  new=(mole |.(!<(state-2 ole)))  [kick this(state u.new)]
   ?~  old=(mole |.(!<(state-1 ole)))  [kick this]
-  [kick this(state u.old)]
+  =*  d  +.u.old
+  [kick this(state [%2 staged.d dest.d fetching.d sent.d ~])]
 ::
 ++  on-poke
   |=  [=mark =vase]
@@ -53,34 +55,45 @@
     =+  !<([=eyre-id =inbound-request:eyre] vase)
     ?.  authenticated.inbound-request
       [(login-redirect:hc eyre-id) this]
-    ?^  why=(cross-site:hc request.inbound-request)
+    ?^  why=(cross-site:ju request.inbound-request)
       [(refuse-cross-site:hc eyre-id u.why) this]
     =/  ,request-line:server
       (parse-request-line:server url.request.inbound-request)
     :: download the jam file of a desk
     ::
     ?:  ?=([%apps %deskjam %download ~] site)
-      =/  [=desk files=(list path)]
+      =/  [dex=(unit desk) files=(list path)]
         %+  roll  args
-        |=  [[k=@t v=@t] [=desk files=(list path)]]
-        ?+  k  [desk files]
-          %desk  [(need ((sand %tas) v)) files]
+        |=  [[k=@t v=@t] [dex=(unit desk) files=(list path)]]
+        ?+  k  [dex files]
+          %desk  [?:(=('' v) ~ ((sand %tas) v)) files]
           %path  ?~  file=(rush v stap)
-                   [desk files]
-                 [desk [u.file files]]
+                   [dex files]
+                 [dex [u.file files]]
         ==
       :_  this
+      ?~  dex
+        (no-download:hc eyre-id "Give a desk to download, as ?desk=name.")
+      ?.  (has-files:jc:hc u.dex)
+        %+  no-download:hc  eyre-id
+        "There is no desk called %{(trip u.dex)} with files to download."
       ?~  files
-        (simple-deskjam:hc eyre-id desk)
-      (simple-sub-deskjam:hc eyre-id desk files)
-    :: visiting the index starts afresh
+        (simple-deskjam:hc eyre-id u.dex)
+      (simple-sub-deskjam:hc eyre-id u.dex files)
+    ::  visiting the index starts afresh, unless the browser says
+    ::  another site sent it here: such a link could lose your upload
     ::
-    =?  +.state  ?=([%apps %deskjam ~] site)  *data
+    =/  fresh=?
+      ?&  ?=([%apps %deskjam ~] site)
+          !(cross-site-get:ju request.inbound-request)
+      ==
+    =/  stop=(list card)  ?.(fresh ~ stop-fetch:hc)
+    =?  +.state  fresh  *data
     :: use rudder to serve pages
     ::
     =/  pages  make-pages:hc
     =;  out=(quip card data)
-      [-.out this(+.state +.out)]
+      [(weld stop -.out) this(+.state +.out)]
     %.  [bowl [eyre-id inbound-request] +.state]
     %:  (steer:rudder data action)
       pages
@@ -102,15 +115,21 @@
       (mean leaf+(trip u.err) ~)
     ?-    -.axn
         %stage-mapp
-      `this(staged `[now.bowl [desk mapp]:axn], fetching ~)
+      :-  stop-fetch:hc
+      this(staged `[now.bowl [desk mapp]:axn], fetching ~, glob ~)
       ::
-        %url-thread
-      =/  url=@t  (unfrag:jc:hc url.axn)
-      :_  this(staged ~, fetching `[now.bowl url ~])
-      ~[(url-thread-card:hc now.bowl url)]
+        ?(%url-thread %fetch)
+      =/  [url=@t local=?]
+        ?-(-.axn %url-thread [url.axn |], %fetch [url local]:axn)
+      =.  url  (unfrag:jc:hc url)
+      :_  this(staged ~, fetching `[now.bowl url ~], glob ~)
+      (weld stop-fetch:hc (fetch-cards:hc now.bowl url local))
       ::
         %set-dest
-      `this(dest `[mode desk]:axn)
+      `this(dest `[mode desk]:axn, glob ~)
+      ::
+        %set-glob
+      `this(glob hash.axn)
       ::
         ?(%commit %new-desk %add-files)
       =/  [revive=? pause=?]
@@ -120,7 +139,7 @@
       =.  sent  `[desk.pan rev.pan held.pan |(live.pan revive)]
       ::  the older pokes kept the upload staged, so keep doing that
       ::
-      =?  +.state  ?=(%commit -.axn)  +.state(staged ~, dest ~)
+      =?  +.state  ?=(%commit -.axn)  +.state(staged ~, dest ~, glob ~)
       [caz this]
     ==
   ==
@@ -133,7 +152,46 @@
     [%http-response *]  [~ this]
   ==
 ::
-++  on-agent  on-agent:def
+++  on-agent
+  |=  [=wire =sign:agent:gall]
+  ^-  (quip card _this)
+  ?+    wire  (on-agent:def wire sign)
+      [%fetch-stop @ ~]
+    ::  spider refuses to stop a fetch that already ended
+    ::
+    [~ this]
+    ::
+      [%fetch @ ~]
+    ::  ignore fetches the user has since moved on from
+    ::
+    =/  id=@da  (slav %da i.t.wire)
+    ?.  &(?=(^ fetching) =(id id.u.fetching) ?=(~ err.u.fetching))
+      [~ this]
+    =*  url  url.u.fetching
+    =/  fail  |=(why=@t [~ this(fetching `[id url `why])])
+    ?-    -.sign
+        %kick  [~ this]
+    ::
+        %poke-ack
+      ?~  p.sign  [~ this]
+      (fail 'the fetch couldn\'t start')
+    ::
+        %watch-ack
+      ?~  p.sign  [~ this]
+      (fail 'the fetch couldn\'t start')
+    ::
+        %fact
+      ?+    p.cage.sign  [~ this]
+          %thread-fail
+        =+  !<([=term =tang] q.cage.sign)
+        (fail (fetch-why:hc term tang))
+      ::
+          %thread-done
+        [~ this(+.state (took-fetch:hc id url !<(@ q.cage.sign)))]
+      ==
+    ==
+  ==
+::
 ++  on-peek   on-peek:def
 ::
 ++  on-arvo
@@ -157,6 +215,8 @@
     [~ this]
     ::
       [%url-thread @ ~]
+    ::  a fetch started with khan by an older version of deskjam
+    ::
     ?>  ?=([%khan %arow *] sign-arvo)
     ::  ignore fetches the user has since moved on from
     ::
@@ -173,17 +233,8 @@
         ?.  &(?=(%thread-fail mote.gof) ?=([@ *] tan))  ~
         `i.tan
       =?  tan  ?=(^ cause)  ?>(?=(^ tan) t.tan)
-      =/  why=@t
-        ?^  tan  (crip (zing (join "; " (turn tan |=(=tank ~(ram re tank))))))
-        ?~  cause  mote.gof
-        ?:  =(%cancelled u.cause)  'the fetch was stopped; try again'
-        u.cause
-      [~ this(fetching `[id url `why])]
-    =/  pack=(unit deskpack)
-      (mole |.((deskjam-to-deskpack-0 !<(@ q.p.p.sign-arvo))))
-    ?~  pack
-      [~ this(fetching `[id url `'it isn\'t a deskjam'])]
-    [~ this(staged `[now.bowl u.pack], fetching ~)]
+      [~ this(fetching `[id url `(fetch-why:hc (fall cause mote.gof) tan)])]
+    [~ this(+.state (took-fetch:hc id url !<(@ q.p.p.sign-arvo)))]
   ==
 ::
 ++  on-leave  on-leave:def
@@ -194,13 +245,21 @@
 ++  snow  (scot %da now.bowl)
 ++  jc  ~(. j [our now]:bowl)
 ::
+::  +staged-mapp: the staged upload, as the commit would write it
+::
+++  staged-mapp
+  ^-  mapp
+  ?>  ?=(^ staged)
+  ?~  dest  stage-mapp.u.staged
+  (with-glob:jc u.dest stage-mapp.u.staged glob)
+::
 ::  +current-plan: what committing the staged upload to .dest would do
 ::
 ++  current-plan
   ^-  plan
   ?>  ?=(^ staged)
   ?>  ?=(^ dest)
-  (make-plan:jc u.dest [stage-desk stage-mapp]:u.staged)
+  (make-plan:jc u.dest stage-desk.u.staged staged-mapp)
 ::
 ::  +reject: why an action can't be done, if it can't
 ::
@@ -210,17 +269,29 @@
   ?-    -.axn
       %stage-mapp  ~
   ::
-      %url-thread
+      ?(%url-thread %fetch)
+    =/  [url=@t local=?]
+      ?-(-.axn %url-thread [url.axn |], %fetch [url local]:axn)
     ::  iris never answers a url it can't parse
     ::
-    ?~  out=(sendable:ju url.axn)
+    ?~  (sendable:ju url)
       `'Give an http or https url.'
+    ?:  &(!local (local:ju url))
+      `'That url is on this machine or your local network. To fetch it anyway, tick "allow local addresses".'
     ~
   ::
   ::  any dest may be set, as before; the web form checks it, and the
   ::  commit checks the plan
   ::
       %set-dest  ~
+  ::
+      %set-glob
+    ?~  staged  `'Nothing is staged. Upload a deskjam first.'
+    ?~  dest  `'Choose a desk for the upload first.'
+    ?~  hash.axn  ~
+    ?~  (serve-glob:jc u.dest stage-mapp.u.staged u.hash.axn)
+      `'The docket the desk would have has no glob to serve.'
+    ~
   ::
       ?(%commit %new-desk %add-files)
     ?~  staged
@@ -258,7 +329,7 @@
   |=  [pan=plan revive=? pause=?]
   ^-  (list card)
   ?>  ?=(^ staged)
-  =*  mapp  stage-mapp.u.staged
+  =/  pack=mapp  staged-mapp
   =/  stop=(list card)
     ?.  &(pause ?=(^ source.pan))  ~
     :_  ~
@@ -267,7 +338,7 @@
     ==
   =/  commit=(list card)
     ?:  ?=(%n mode.pan)
-      [%pass /new-desk/[desk.pan] %arvo (new-desk:cloy desk.pan ~ mapp)]~
+      [%pass /new-desk/[desk.pan] %arvo (new-desk:cloy desk.pan ~ pack)]~
     ::  leave out files we know are unchanged: the commit is the same
     ::  without them, and unchanged /sys files would set off a kernel
     ::  update on %base
@@ -277,7 +348,7 @@
         ^-  soba:clay
         (turn ~(tap in dels.pan) |=(=path [path %del ~]))
       ^-  soba:clay
-      %+  murn  ~(tap by mapp)
+      %+  murn  ~(tap by pack)
       |=  [=path =page:clay]
       ^-  (unit [^path miso:clay])
       ?:  &((~(has in same.pan) path) exact:(stored-lobes:jc path page))
@@ -292,17 +363,73 @@
     [%pass /revive/[desk.pan] %arvo %c %zest desk.pan %live]~
   :(weld stop commit start)
 ::
-++  url-thread-card
-  |=  [id=@da url=@t]
-  ^-  card
-  :*  %pass  /url-thread/(scot %da id)  %arvo  %k  %fard
-      q.byk.bowl  %deskjam-url  %noun
-      !>((some url))
+::  url uploads
+::
+::    a thread fetches the url, following redirects. spider runs it, not
+::    khan, so that deskjam can stop it when the user moves on.
+::
+::  +fetch-tid: the thread id of the fetch started at .id
+::
+++  fetch-tid
+  |=  id=@da
+  ^-  @ta
+  (cat 3 'deskjam-url--' (scot %ud id))
+::
+::  +fetch-cards: start fetching .url, as the fetch started at .id
+::
+++  fetch-cards
+  |=  [id=@da url=@t local=?]
+  ^-  (list card)
+  =/  tid=@ta  (fetch-tid id)
+  =/  =wire  /fetch/(scot %da id)
+  =/  args=start-args:spider
+    [~ `tid byk.bowl(r da+now.bowl) %deskjam-url !>(`[url local])]
+  :~  [%pass wire %agent [our.bowl %spider] %watch /thread-result/[tid]]
+      [%pass wire %agent [our.bowl %spider] %poke %spider-start !>(args)]
   ==
+::
+::  +stop-fetch: stop the fetch in progress, if there is one
+::
+++  stop-fetch
+  ^-  (list card)
+  ?.  &(?=(^ fetching) ?=(~ err.u.fetching))  ~
+  =*  id  id.u.fetching
+  :~  [%pass /fetch/(scot %da id) %agent [our.bowl %spider] %leave ~]
+      :*  %pass  /fetch-stop/(scot %da id)  %agent  [our.bowl %spider]
+          %poke  %spider-stop  !>([(fetch-tid id) |])
+      ==
+  ==
+::
+::  +fetch-why: what a failed fetch's error says
+::
+++  fetch-why
+  |=  [err=@t =tang]
+  ^-  @t
+  ?^  tang  (crip (zing (join "; " (turn tang |=(=tank ~(ram re tank))))))
+  ?:  =('cancelled' err)  'the fetch was stopped; try again'
+  err
+::
+::  +took-fetch: the state once the fetch started at .id got .dat
+::
+++  took-fetch
+  |=  [id=@da url=@t dat=@]
+  ^-  data
+  =/  got  (unpack:jc dat)
+  ?:  ?=(%| -.got)
+    =/  why=@t
+      ?-  p.got
+          %not
+        'it isn\'t a deskjam. Link to the file itself, not to a page about it'
+      ::
+          %bomb
+        'it unpacks to far more than its size, as only a crafted file would, so deskjam won\'t read it'
+      ==
+    +.state(fetching `[id url `why])
+  +.state(staged `[now.bowl p.got], fetching ~, glob ~)
 ::
 ++  page-paths
   ^-  (list path)
-  ~[/index /staged /confirm /subset /status]
+  ~[/index /staged /confirm /glob /subset /status]
 ::
 ++  make-pages
   %-  ~(gas by *(map @ta (page:rudder data action)))
@@ -379,76 +506,25 @@
       "attachment; filename=\"{(trip desk)}-subset.deskjam\""
   ==
 ::
+::  +no-download: say why there's nothing to download
+::
+++  no-download
+  |=  [=eyre-id why=tape]
+  ^-  (list card)
+  %+  give-simple-payload:app:server  eyre-id
+  :-  :-  404
+      :~  ['content-type' 'text/plain; charset=utf-8']
+          ['x-content-type-options' 'nosniff']
+      ==
+  `(as-octs:mimes:html (crip why))
+::
 ++  login-redirect
   |=  =eyre-id
   ^-  (list card)
   %+  give-simple-payload:app:server  eyre-id
   [[307 ['Location' '/~/login?redirect=%2Fapps%2Fdeskjam'] ~] ~]
 ::
-::  +cross-site: why to refuse a request, if a page on another origin
-::  had the browser send it
-::
-::    any web page can make the browser post a form here, login cookie
-::    and all, so take changes only from the ship's own pages. as go's
-::    net/http CrossOriginProtection does, trust sec-fetch-site, which
-::    browsers send to https and localhost urls. over plain http, and
-::    from browsers older than 2023, only origin comes, which must then
-::    match the host, as sent or as a proxy forwarded it. requests with
-::    neither header are taken to be from scripts, not web pages.
-::
-++  cross-site
-  |=  =request:http
-  ^-  (unit tape)
-  ?:  ?=(?(%'GET' %'HEAD') method.request)  ~
-  =*  heds  header-list.request
-  ?^  fetch=(get-header:http 'sec-fetch-site' heds)
-    ?:  |(=('same-origin' u.fetch) =('none' u.fetch))  ~
-    %-  some
-    ;:  weld
-      "deskjam only takes forms sent from your ship's own pages, and "
-      "your browser says this one came from another site. To upload, "
-      "open /apps/deskjam on your ship and use the form there."
-    ==
-  ?~  origin=(get-header:http 'origin' heds)  ~
-  ::  an origin is a scheme, :// and a host, or else null
-  ::
-  =/  from=tape  (cass (trip u.origin))
-  =/  host=tape  ?~(at=(find "://" from) ~ (slag (add 3 u.at) from))
-  ?~  host
-    %-  some
-    ;:  weld
-      "deskjam only takes forms sent from your ship's own pages, and "
-      "your browser hid which page this one came from. Reach your ship "
-      "over https, or let your browser send referrers to it."
-    ==
-  ::  where the browser could have reached the ship: the host as sent,
-  ::  or as a proxy forwarded it, the browser's first if it lists more
-  ::
-  =/  ours=(list tape)
-    %+  turn
-      ;:  weld
-        (drop (get-header:http 'host' heds))
-        (drop (get-header:http 'x-forwarded-host' heds))
-        =/  fwd  (biff (get-header:http 'forwarded' heds) unpack-header:http)
-        ?.  ?=([~ ^] fwd)  ~
-        (drop (~(get by i.u.fwd) 'host'))
-      ==
-    |=  hed=@t
-    =/  hos=tape  (cass (trip hed))
-    (scag (fall (find "," hos) (lent hos)) hos)
-  ?:  (lien ours |=(hos=tape =(hos host)))  ~
-  %-  some
-  ;:  weld
-    "deskjam only takes forms sent from your ship's own pages. This "
-    "one came from a page at {(trip u.origin)}, but your ship was "
-    "reached as {(trip (fall (get-header:http 'host' heds) '?'))}. If "
-    "that page was deskjam's own, your ship is behind a reverse proxy "
-    "that changes the Host header: make it pass on the Host the browser "
-    "sent, or the browser's host in a Forwarded or X-Forwarded-Host "
-    "header."
-  ==
-::
-::  +refuse-cross-site: answer a request +cross-site refused, and why
+::  +refuse-cross-site: answer a request +cross-site:ju refused, and why
 ::
 ++  refuse-cross-site
   |=  [=eyre-id why=tape]

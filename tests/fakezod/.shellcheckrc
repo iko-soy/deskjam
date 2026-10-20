@@ -1,0 +1,2 @@
+# find env.sh, which every script sources from its own directory
+source-path=SCRIPTDIR

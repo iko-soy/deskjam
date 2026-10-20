@@ -4,7 +4,7 @@
 +*  hc  ~(. h [our now]:bowl)
 ++  page
   ^-  manx
-  ;html
+  ;html(lang "en")
     ;head
       ;title: Deskjam
       ;meta(charset "utf-8");
@@ -27,7 +27,8 @@
   ^-  manx
   ;div(style "max-width: 50ch; width: 100%")
     ;h2: upload deskjam
-    ;p: Upload a deskjam from your computer or a url. Next you choose whether to install it as a new desk or update an existing one.
+    ;p: A deskjam is a desk, such as an app, in one file. Upload one from your computer, or from a link to the file itself, such as a release download. Next you choose whether to install it as a new desk or update an existing one.
+    ;p: Only upload deskjams from people you trust: an app's agents run as your ship, and can read and change anything on it.
     ;br;
     ;form
       =method   "post"
@@ -35,21 +36,27 @@
       =action   "/apps/deskjam"
       =class    "justified-form"
       ;input
-        =id        "file-select"
-        =type      "file"
-        =name      "file"
-        =accept    ".deskjam"
-        =required  "required";
-      ;input(type "submit", value "submit");
+        =id          "file-select"
+        =type        "file"
+        =name        "file"
+        =accept      ".deskjam"
+        =aria-label  "deskjam file"
+        =required    "required";
+      ;input(type "submit", value "upload");
     ==
     ;form(method "post", class "justified-form")
       ;input
         =type         "url"
         =name         "url"
-        =placeholder  "https://www.example.com"
+        =placeholder  "https://example.com/app.deskjam"
+        =aria-label   "deskjam url"
         =required     "required"
         =style        "max-width: 30ch; width: 100%;";
-      ;input(type "submit", value "submit");
+      ;input(type "submit", value "fetch");
+      ;label
+        ;input(type "checkbox", name "local", value "y");
+        ; allow local addresses: this machine and its network
+      ==
     ==
   ==
 ::
@@ -57,15 +64,20 @@
   ^-  manx
   ;div(style "max-width: 50ch; width: 100%;")
     ;h2: download deskjam
-    ;p: Download a whole desk, or check "subset" to select files.
+    ;p: Download a desk as a deskjam, to keep a copy or to install it on another ship. Check "subset" to choose files, or see a desk's status.
     ;br;
     ;form
       =id      "download-form"
       =method  "get"
       =action  "/apps/deskjam/download"
       =class   "justified-form"
-      ;select(name "desk", required "required")
-        ;*  %+  turn  (sort ~(tap in desks:hc) aor)
+      ;select(name "desk", required "required", aria-label "desk")
+        ::  desks with no commit have no files to download
+        ::
+        ;*  =/  have=(list desk)
+              %+  murn  ~(tap by domes:hc)
+              |=([d=desk =dome:clay] ?:(=(0 let.dome) ~ `d))
+            %+  turn  (sort have aor)
             |=  =desk
             ^-  manx
             ;option(value (trip desk)): {(trip desk)}
@@ -77,7 +89,8 @@
           =type     "checkbox"
           =onclick  "changeDownloadFormAction()";
       ==
-      ;input(type "submit", value "submit");
+      ;input(type "submit", value "download");
+      ;button(type "submit", formaction "/apps/deskjam/status"): status
     ==
   ==
 --

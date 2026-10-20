@@ -1,13 +1,16 @@
 /-  *deskjam
 /+  sty=webui-styles, scr=webui-scripts, img=webui-images,
-    h=deskjam
-|_  [=bowl:gall =desk]
+    h=deskjam, par=webui-parts
+::
+::  .dex: the desk to choose files from, or why there's none
+::
+|_  [=bowl:gall dex=(each desk tape)]
 +*  hc  ~(. h [our now]:bowl)
 ++  page
   ^-  manx
-  ;html
+  ;html(lang "en")
     ;head
-      ;title:"%deskjam"
+      ;title: {?:(?=(%& -.dex) "Deskjam: files of %{(trip p.dex)}" "Deskjam")}
       ;meta(charset "utf-8");
       ;meta
         =name     "viewport"
@@ -16,12 +19,17 @@
       ;script: {subset:scr}
     ==
     ;body
+      ;+  icons:par
       ;a/"/apps/deskjam": return home
       ;br;
-      ;+  display-desk
+      ;+  ?-  -.dex
+            %|  ;p.bad: {p.dex}
+            %&  (display-desk p.dex)
+          ==
     ==
   ==
 ++  display-desk
+  |=  =desk
   ^-  manx
   ;form(method "get", action "/apps/deskjam/download")
     ;input(type "hidden", name "desk", value (trip desk));
@@ -29,13 +37,14 @@
       ;tr
         ;td: Select files and folders to jam.
         ;td
-          ;input(type "submit", value "submit");
+          ;input(type "submit", value "download");
         ==
       ==
-      ;*  folder-hierarchy
+      ;*  (folder-hierarchy desk)
     ==
   ==
 ++  folder-hierarchy
+  |=  =desk
   ^-  marl
   %+  turn  (desk-to-hierarchy:hc desk)
   |=  [pat=path dir=? dep=@]
@@ -51,7 +60,7 @@
                     =id        tpath
                     =type      "checkbox"
                     =class     (path-to-classes:hc pat dir)
-                    =onchange  "checkboxDir(\"{tpath}\")";
+                    =onchange  "checkboxDir(this.id)";
                 ;input
                   =id        tpath
                   =type      "checkbox"
@@ -68,10 +77,11 @@
                 ==
           ==
           ;td
-            ;+  ?:  =(0 dep)  ;/  (trip desk)
-                ?:  dir  ;/  (trip (rear pat))
-                ;/  =-  ?>  ?=(^ fil)  t.fil
-                    fil=(spud (slag (sub (lent pat) 2) pat))
+            ;label(for tpath)
+              ;+  ?:  =(0 dep)  ;/  (trip desk)
+                  ?:  dir  ;/  (trip (rear pat))
+                  ;/  (file-name:par pat)
+            ==
           ==
         ==
       ==
