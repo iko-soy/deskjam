@@ -1,21 +1,26 @@
+<img src="assets/deskjam.svg" alt="deskjam" width="128">
+
 # deskjam
 
 ## How this fork differs
 
 This is a fork of [tinnus-napbus/deskjam](https://github.com/tinnus-napbus/deskjam). It adds support for installing and updating apps by uploading `.deskjam` files.
 
-Everything upstream deskjam does still works the same way, and stays the default:
+Apart from the security fixes below, everything upstream deskjam does still works the same way, and stays the default:
 
 - Merging an upload into an existing desk still writes its files and keeps the desk's other files.
 - New desks still start suspended.
-- Downloads, subsets and url uploads work as before.
+- Downloads, subsets and url uploads still work.
 - The old form fields and the old `%new-desk` and `%add-files` pokes still work.
 
-What's new is opt-in:
+New, and opt-in:
 
 - **Replace**: update a desk so it becomes exactly the upload. Files the upload lacks are deleted, so files a new version of an app removed or renamed don't linger.
 - **Start after upload**: optionally `|revive` the desk in the same commit.
 - **Stop kiln syncing**: optionally `|pause` a desk that kiln overwrites from a publisher, so the next update doesn't undo yours.
+
+New, and always on:
+
 - **A fuller confirm page**: before committing, it lists the files that will be deleted, added, changed and left alone, and checks the upload against what Clay will do. It refuses only commits Clay would reject or ignore anyway, plus replacing `%base` or `%kids` and replaces that would stop a desk's agents. Everything else, including desks that are synced from elsewhere, gets a warning.
 - **A status page**: after each commit, it says whether the upload landed and whether the desk is running.
 - **Url uploads**: they follow redirects and send escapes like `%20` as written, so GitHub release links work. When a fetch fails, they say why.
@@ -37,7 +42,7 @@ You can build the full `%deskjam` desk with the [`mortar` build tool available h
 
 Or, with Nix with flakes enabled, run `nix build`, which writes the same desk to `result`. `flake.nix` pins the same dependencies as `mortar.yaml`, so change them together. Nix only sees files git knows about, so after adding a file to `desk`, run `git add` (or any `jj` command, such as `jj status`) before `nix build`.
 
-The app's tile icon, [`assets/deskjam.svg`](assets/deskjam.svg), is a copy of upstream's. `desk/desk.docket-0` carries it url-encoded, as a `data:` URL, so Landscape shows it without loading anything, including in previews on other ships before they install deskjam. After changing the icon, put its new URL in the docket's `image`, from `python3 -c 'import urllib.parse as u; print("data:image/svg+xml," + u.quote(open("assets/deskjam.svg").read(), safe=""))'`. `nix build` checks that the two match.
+The app's tile icon, [`assets/deskjam.svg`](assets/deskjam.svg), is a copy of upstream's. `desk/desk.docket-0` carries it url-encoded, as a `data:` URL, so Landscape shows it without loading anything, including in previews on other ships before they install deskjam. After changing the icon, replace the URL in the docket's `image` with the output of this, run in the repo: `python3 -c 'import urllib.parse as u; print("data:image/svg+xml," + u.quote(open("assets/deskjam.svg").read(), safe=""))'`. `nix build` checks that the two match.
 
 ## Installation
 1. Clone this repo: `git clone https://github.com/iko-soy/deskjam`.
