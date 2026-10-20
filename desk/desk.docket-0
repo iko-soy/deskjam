@@ -1,10 +1,10 @@
 :~
   title+'Deskjam'
-  info+'Upload and download desks in deskjam format directly from your ship.'
+  info+'Install and update apps, and upload and download desks, as deskjam files directly from your ship.'
   color+0x9c.cfe7
   version+[0 2 0]
-  image+'https://m.tinnus-napbus.xyz/pub/deskjam.svg'
-  website+'https://github.com/tinnus-napbus/deskjam'
+  image+'https://raw.githubusercontent.com/iko-soy/deskjam/main/assets/deskjam.svg'
+  website+'https://github.com/iko-soy/deskjam'
   license+'MIT'
   base+'deskjam'
   site+/apps/deskjam

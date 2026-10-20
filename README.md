@@ -20,27 +20,39 @@ What's new is opt-in:
 - **A status page**: after each commit, it says whether the upload landed and whether the desk is running.
 - **Url uploads**: they follow redirects and send escapes like `%20` as written, so GitHub release links work. When a fetch fails, they say why.
 
-See [Installing and updating apps](#installing-and-updating-apps) for details. Upgrading from upstream deskjam drops any upload you had staged but not yet committed.
+See [Installing and updating apps](#installing-and-updating-apps) for details, and [Replacing upstream deskjam](#replacing-upstream-deskjam) to switch to this fork.
 
 ## Building
 
 You can build the full `%deskjam` desk with the [`mortar` build tool available here](https://github.com/tinnus-napbus/mortar).
 
+The app's tile icon, [`assets/deskjam.svg`](assets/deskjam.svg), is a copy of upstream's. `desk/desk.docket-0` links to it on GitHub, so it has to stay at that path on `main`.
+
 ## Installation
-1. Clone this repo.
+1. Clone this repo: `git clone https://github.com/iko-soy/deskjam`.
 2. Boot up a ship (fakezod or moon or whatever you use).
-4. `|new-desk %deskjam` to create a new desk called `%deskjam.
-5. `|mount %deskjam` to access the `%deskjam` desk from the unix command line.
-6. At the unix command line `rm -rf [ship-name]/deskjam/*` to empty out the contents of the desk.
-7. In the repo, run `mortar build`
-7. Copy the contents of `dist` to `[ship-name]/deskjam`
+3. `|new-desk %deskjam` to create a new desk called `%deskjam`.
+4. `|mount %deskjam` to access the `%deskjam` desk from the unix command line.
+5. At the unix command line `rm -rf [ship-name]/deskjam/*` to empty out the contents of the desk.
+6. In the repo, run `mortar build`.
+7. Copy the contents of `dist` to `[ship-name]/deskjam`.
 8. At the dojo command line `|commit %deskjam`.
 9. Install with `|install our %deskjam`.
+
+### Replacing upstream deskjam
+
+If your ship already runs upstream deskjam, you can install this fork through it, without access to the ship's files:
+
+1. Get this fork as a deskjam: on a ship that runs it, such as a fakezod installed as above, download the `%deskjam` desk from `[your-domain-name]/apps/deskjam`.
+2. On your ship, run `+vats %deskjam` in the dojo. If its source ship isn't `~`, kiln keeps it in sync with the ship you installed it from, and that ship's next release would replace the fork. Run `|pause %deskjam` first.
+3. Upload the deskjam on `[your-domain-name]/apps/deskjam`, add its files to the existing desk `%deskjam`, and confirm.
+
+This drops any upload you had staged but not yet committed. To install a later version of this fork, upload it the same way and choose **Replace**.
 
 ## Usage
 1. To download a desk as a jam file go to `[your-domain-name]/apps/deskjam/download`.
 2. To download a subset of the files in this desk as a jam file click the desk name on this page.
-3. To upload a jammed desk go to `[your-domain-name]/apps/deskjam` and follow the instructions there.
+3. To install or update an app, or upload a jammed desk, go to `[your-domain-name]/apps/deskjam` and follow the instructions there. See [Installing and updating apps](#installing-and-updating-apps).
 
 ## Installing and updating apps
 
