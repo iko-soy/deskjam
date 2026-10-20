@@ -23,9 +23,7 @@ github base-dev:
     - lib/skeleton.hoon
     - lib/strand.hoon
     - lib/strandio.hoon
-    - lib/verb.hoon
     - sur/spider.hoon
-    - sur/verb.hoon
   priority: 10
   revision: 0a9a312e133891937de9c4df1ebecad5cf669c7c
 

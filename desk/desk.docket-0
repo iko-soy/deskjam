@@ -2,7 +2,7 @@
   title+'Deskjam'
   info+'Install and update apps, and upload and download desks, as deskjam files directly from your ship.'
   color+0x9c.cfe7
-  version+[0 2 0]
+  version+[0 2 1]
   image+'https://raw.githubusercontent.com/iko-soy/deskjam/main/assets/deskjam.svg'
   website+'https://github.com/iko-soy/deskjam'
   license+'MIT'

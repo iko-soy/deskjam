@@ -20,6 +20,13 @@ What's new is opt-in:
 - **A status page**: after each commit, it says whether the upload landed and whether the desk is running.
 - **Url uploads**: they follow redirects and send escapes like `%20` as written, so GitHub release links work. When a fetch fails, they say why.
 
+It also fixes two security problems in upstream deskjam. These fixes are always on:
+
+- **Forms from other websites are refused.** Upstream accepts a form submission from any web page you visit while logged in to your ship. A malicious page could have your browser upload a desk, or have your ship fetch one from the attacker's server, and commit it, even into a running desk. deskjam now answers 403 when the browser says a submission came from a page on another origin. Browsers say so in `Sec-Fetch-Site` to https and localhost addresses. Over plain http, and in browsers from before 2023, they send only `Origin`, which then has to match the address you reached your ship at. Requests with neither header, such as from `curl` or scripts, work as before.
+- **No event stream for other ships.** Upstream wraps the agent in the `verb` library, which lets any ship subscribe to a stream of deskjam's events. The stream shows when you use deskjam and the names of the desks you upload to. This fork drops `verb`, so `:deskjam +verb` no longer works either, and ends existing subscriptions when it loads.
+
+If you reach your ship over plain http through a reverse proxy that changes the `Host` header, the proxy has to tell your ship the address the browser used. Otherwise deskjam refuses its own forms, with a message that says so. Passing on the browser's `Host` works (in nginx, `proxy_set_header Host $http_host;`), and so does an `X-Forwarded-Host` header, which Apache adds by default, or `Forwarded: host="..."`.
+
 See [Installing and updating apps](#installing-and-updating-apps) for details, and [Replacing upstream deskjam](#replacing-upstream-deskjam) to switch to this fork.
 
 ## Building

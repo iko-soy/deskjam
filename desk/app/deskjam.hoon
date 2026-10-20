@@ -1,5 +1,5 @@
 /-  *deskjam
-/+  webui, rudder, server, dbug, verb, default-agent,
+/+  webui, rudder, server, dbug, default-agent,
     j=deskjam, ju=deskjam-url
 ::
 /$  deskpack-0-to-mime  %deskpack-0  %mime
@@ -13,8 +13,10 @@
 =|  state-1
 =*  state  -
 ::
+::  no verb wrapper: it takes /verb/events subscriptions from any ship
+::  before +on-watch can check them, then sends them every event
+::
 %-  agent:dbug
-%+  verb  |
 ^-  agent:gall
 =<
 |_  =bowl:gall
@@ -32,11 +34,15 @@
 ++  on-load
   |=  ole=vase
   ^-  (quip card _this)
+  ::  end any subscriptions to the event streams the verb wrapper served
+  ::
+  =/  kick=(list card)
+    [%give %kick ~[/verb/events /verb/events-plus] ~]~
   ::  the state only holds an upload in progress, so start afresh from
   ::  any state we can't read
   ::
-  ?~  old=(mole |.(!<(state-1 ole)))  `this
-  `this(state u.old)
+  ?~  old=(mole |.(!<(state-1 ole)))  [kick this]
+  [kick this(state u.old)]
 ::
 ++  on-poke
   |=  [=mark =vase]
@@ -47,6 +53,8 @@
     =+  !<([=eyre-id =inbound-request:eyre] vase)
     ?.  authenticated.inbound-request
       [(login-redirect:hc eyre-id) this]
+    ?^  why=(cross-site:hc request.inbound-request)
+      [(refuse-cross-site:hc eyre-id u.why) this]
     =/  ,request-line:server
       (parse-request-line:server url.request.inbound-request)
     :: download the jam file of a desk
@@ -376,4 +384,79 @@
   ^-  (list card)
   %+  give-simple-payload:app:server  eyre-id
   [[307 ['Location' '/~/login?redirect=%2Fapps%2Fdeskjam'] ~] ~]
+::
+::  +cross-site: why to refuse a request, if a page on another origin
+::  had the browser send it
+::
+::    any web page can make the browser post a form here, login cookie
+::    and all, so take changes only from the ship's own pages. as go's
+::    net/http CrossOriginProtection does, trust sec-fetch-site, which
+::    browsers send to https and localhost urls. over plain http, and
+::    from browsers older than 2023, only origin comes, which must then
+::    match the host, as sent or as a proxy forwarded it. requests with
+::    neither header are taken to be from scripts, not web pages.
+::
+++  cross-site
+  |=  =request:http
+  ^-  (unit tape)
+  ?:  ?=(?(%'GET' %'HEAD') method.request)  ~
+  =*  heds  header-list.request
+  ?^  fetch=(get-header:http 'sec-fetch-site' heds)
+    ?:  |(=('same-origin' u.fetch) =('none' u.fetch))  ~
+    %-  some
+    ;:  weld
+      "deskjam only takes forms sent from your ship's own pages, and "
+      "your browser says this one came from another site. To upload, "
+      "open /apps/deskjam on your ship and use the form there."
+    ==
+  ?~  origin=(get-header:http 'origin' heds)  ~
+  ::  an origin is a scheme, :// and a host, or else null
+  ::
+  =/  from=tape  (cass (trip u.origin))
+  =/  host=tape  ?~(at=(find "://" from) ~ (slag (add 3 u.at) from))
+  ?~  host
+    %-  some
+    ;:  weld
+      "deskjam only takes forms sent from your ship's own pages, and "
+      "your browser hid which page this one came from. Reach your ship "
+      "over https, or let your browser send referrers to it."
+    ==
+  ::  where the browser could have reached the ship: the host as sent,
+  ::  or as a proxy forwarded it, the browser's first if it lists more
+  ::
+  =/  ours=(list tape)
+    %+  turn
+      ;:  weld
+        (drop (get-header:http 'host' heds))
+        (drop (get-header:http 'x-forwarded-host' heds))
+        =/  fwd  (biff (get-header:http 'forwarded' heds) unpack-header:http)
+        ?.  ?=([~ ^] fwd)  ~
+        (drop (~(get by i.u.fwd) 'host'))
+      ==
+    |=  hed=@t
+    =/  hos=tape  (cass (trip hed))
+    (scag (fall (find "," hos) (lent hos)) hos)
+  ?:  (lien ours |=(hos=tape =(hos host)))  ~
+  %-  some
+  ;:  weld
+    "deskjam only takes forms sent from your ship's own pages. This "
+    "one came from a page at {(trip u.origin)}, but your ship was "
+    "reached as {(trip (fall (get-header:http 'host' heds) '?'))}. If "
+    "that page was deskjam's own, your ship is behind a reverse proxy "
+    "that changes the Host header: make it pass on the Host the browser "
+    "sent, or the browser's host in a Forwarded or X-Forwarded-Host "
+    "header."
+  ==
+::
+::  +refuse-cross-site: answer a request +cross-site refused, and why
+::
+++  refuse-cross-site
+  |=  [=eyre-id why=tape]
+  ^-  (list card)
+  %+  give-simple-payload:app:server  eyre-id
+  :-  :-  403
+      :~  ['content-type' 'text/plain; charset=utf-8']
+          ['x-content-type-options' 'nosniff']
+      ==
+  `(as-octs:mimes:html (crip why))
 --

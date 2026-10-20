@@ -77,11 +77,6 @@
   |=  [[=ship =desk] =dome:clay]
   ?.(=(our ship) ~ `[desk dome])
 ::
-::  +sources: desks that kiln keeps in sync with other desks
-::
-++  sources
-  .^((map desk [ship desk]) %gx /[sour]/hood/[snow]/kiln/sources/noun)
-::
 ::  +syncs: every desk kiln overwrites from elsewhere, and from where
 ::
 ::    a kiln sync (|install, |sync) merges each new revision of its

@@ -70,9 +70,7 @@
               "lib/skeleton.hoon"
               "lib/strand.hoon"
               "lib/strandio.hoon"
-              "lib/verb.hoon"
               "sur/spider.hoon"
-              "sur/verb.hoon"
             ];
           }
         ];
