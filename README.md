@@ -24,7 +24,9 @@ See [Installing and updating apps](#installing-and-updating-apps) for details, a
 
 ## Building
 
-You can build the full `%deskjam` desk with the [`mortar` build tool available here](https://github.com/tinnus-napbus/mortar).
+You can build the full `%deskjam` desk with the [`mortar` build tool available here](https://github.com/tinnus-napbus/mortar). It writes the desk to `dist`.
+
+Or, with Nix with flakes enabled, run `nix build`, which writes the same desk to `result`. `flake.nix` pins the same dependencies as `mortar.yaml`, so change them together. Nix only sees files git knows about, so after adding a file to `desk`, run `git add` (or any `jj` command, such as `jj status`) before `nix build`.
 
 The app's tile icon, [`assets/deskjam.svg`](assets/deskjam.svg), is a copy of upstream's. `desk/desk.docket-0` links to it on GitHub, so it has to stay at that path on `main`.
 
@@ -34,8 +36,8 @@ The app's tile icon, [`assets/deskjam.svg`](assets/deskjam.svg), is a copy of up
 3. `|new-desk %deskjam` to create a new desk called `%deskjam`.
 4. `|mount %deskjam` to access the `%deskjam` desk from the unix command line.
 5. At the unix command line `rm -rf [ship-name]/deskjam/*` to empty out the contents of the desk.
-6. In the repo, run `mortar build`.
-7. Copy the contents of `dist` to `[ship-name]/deskjam`.
+6. In the repo, run `mortar build`, or `nix build`.
+7. Copy the contents of `dist` to `[ship-name]/deskjam`. After `nix build`, copy `result` instead, and make the copies writable, since files Nix builds are read-only. From the repo: `cp -R result/. /path/to/[ship-name]/deskjam/ && chmod -R u+w /path/to/[ship-name]/deskjam`.
 8. At the dojo command line `|commit %deskjam`.
 9. Install with `|install our %deskjam`.
 
