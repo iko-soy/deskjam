@@ -22,7 +22,7 @@
 # status such as "hello v1 state-0 count=1 greeting=hello from hello-old".
 #
 # The marks, libraries and /sys/kelvin are deskjam's, from `nix build
-# .#deskjam`: base-dev's mar noun/hoon/txt/txt-diff/kelvin/bill/mime and lib
+# .#desk`: base-dev's mar noun/hoon/txt/txt-diff/kelvin/bill/mime and lib
 # default-agent/skeleton/dbug, and landscape's mar/docket-0, lib/docket and
 # sur/docket, at the revisions flake.nix pins.
 set -euo pipefail

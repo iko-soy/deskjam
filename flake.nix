@@ -22,6 +22,7 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       flake-utils,
       urbit,
@@ -91,7 +92,7 @@
         iconMatches = lib.hasInfix "image+'${iconUrl}'" (builtins.readFile ./desk/desk.docket-0);
 
         # The full desk, as `mortar build` writes it to dist/.
-        deskjam =
+        desk =
           assert lib.assertMsg iconMatches
             "desk/desk.docket-0's image isn't assets/deskjam.svg, url-encoded. See Building in the README.";
           pkgs.runCommand "deskjam" { } ''
@@ -105,13 +106,16 @@
           '';
       in
       {
+        # As in iko-soy/hits: desk is the full desk, and the default. An
+        # app whose docket names a glob also has a glob package; deskjam's
+        # pages come from its agent, so it has none.
         packages = {
-          inherit deskjam;
-          default = deskjam;
+          inherit desk;
+          default = self.packages.${system}.desk;
         };
 
         checks = {
-          inherit deskjam;
+          inherit desk;
 
           # mortar.yaml must take the same files from the same repos at the
           # same revisions, in the same priority order, as `imports`.

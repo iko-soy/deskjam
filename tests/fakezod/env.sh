@@ -87,5 +87,14 @@ need_pill() {
 }
 
 # The store path of the %deskjam desk that FLAKE (default: the repo's
-# working copy) builds. Nix only sees files git knows about.
-deskjam_build() { nix build --no-link --print-out-paths "${1:-$REPO}#deskjam"; }
+# working copy) builds as its desk output. Revisions from before that
+# output was named desk call it deskjam, so when Nix says FLAKE has no
+# desk, build deskjam instead. Nix only sees files git knows about.
+deskjam_build() {
+  local flake=${1:-$REPO} out=desk err
+  if ! err=$(nix eval "$flake#desk.name" 2>&1 >/dev/null) &&
+    [[ $err == *"does not provide attribute"* ]]; then
+    out=deskjam
+  fi
+  nix build --no-link --print-out-paths "$flake#$out"
+}

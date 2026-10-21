@@ -5,10 +5,10 @@
 #
 #   sync-deskjam.sh [-F FLAKE | -d DIR] [-v] [-q SECS] [-m SECS]
 #
-#   (default) the repo's working copy: nix build $REPO#deskjam. Nix only
+#   (default) the repo's working copy: nix build $REPO#desk. Nix only
 #             sees files git knows about, so after adding a file, run
 #             `git add` or any jj command first.
-#   -F FLAKE  build FLAKE#deskjam instead, e.g. github:iko-soy/deskjam or
+#   -F FLAKE  build FLAKE#desk instead, e.g. github:iko-soy/deskjam or
 #             "git+file://$PWD?rev=<commit>"
 #   -d DIR    commit the desk in DIR as it is, e.g. `mortar build`'s dist
 #   -v/-q/-m  passed to sync-desk.sh (verbatim log / quiet period / max wait)
@@ -35,8 +35,8 @@ while getopts "F:d:vq:m:h" o; do
   esac
 done
 if [[ -z $SRC ]]; then
-  SRC=$(deskjam_build "$FLAKE") || { echo "sync-deskjam: nix build $FLAKE#deskjam failed" >&2; exit 2; }
-  echo "sync-deskjam: built $FLAKE#deskjam: $SRC"
+  SRC=$(deskjam_build "$FLAKE") || { echo "sync-deskjam: nix build of $FLAKE's desk failed" >&2; exit 2; }
+  echo "sync-deskjam: built $FLAKE's desk: $SRC"
 fi
 [[ -f $SRC/sys.kelvin ]] || { echo "sync-deskjam: $SRC isn't a desk (no sys.kelvin)" >&2; exit 2; }
 if ! { rm -rf "$DIST" && mkdir -p "$DIST" && cp -R --no-preserve=mode "$SRC/." "$DIST/"; }; then

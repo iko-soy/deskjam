@@ -1,6 +1,6 @@
 # fakezod test harness
 
-Scripts that boot a local fake ship (`~zod`, with fake networking, so it never talks to the real network) and run deskjam on it. They install the desk that `nix build .#deskjam` builds, run dojo commands on the ship, drive deskjam's web interface with curl, and collect everything the ship prints in one log. `smoke-test.sh` uses them to upload, install and update a test app through deskjam's web interface, the way a browser would.
+Scripts that boot a local fake ship (`~zod`, with fake networking, so it never talks to the real network) and run deskjam on it. They install the desk that `nix build .#desk` builds, run dojo commands on the ship, drive deskjam's web interface with curl, and collect everything the ship prints in one log. `smoke-test.sh` uses them to upload, install and update a test app through deskjam's web interface, the way a browser would.
 
 CI runs `bootstrap.sh -n` and `smoke-test.sh` on pull requests (see `.github/workflows/ci.yml`).
 
@@ -68,7 +68,7 @@ Every path and port can be changed with an environment variable: `WORK`, `URBIT`
 | `dojo.sh [-l] CMD` | run one dojo command through `%lens` and print its result. `-l` also prints the log lines it caused. |
 | `logmark.sh`, `logsince.sh MARK` | the end of the log as a byte offset; the log since an offset, optionally after waiting for quiet (`-q`) or for a line (`-u`) |
 | `sync-desk.sh DESK DIR` | make the mounted desk a copy of DIR (deleting what DIR lacks), `\|commit` it, wait, print the log, and say whether it worked |
-| `sync-deskjam.sh [-F FLAKE \| -d DIR]` | `nix build .#deskjam` (or FLAKE's, or the desk in DIR), copy it to `dist/`, and `sync-desk.sh deskjam dist` |
+| `sync-deskjam.sh [-F FLAKE \| -d DIR]` | `nix build .#desk` (or FLAKE's, or the desk in DIR), copy it to `dist/`, and `sync-desk.sh deskjam dist` |
 | `build-file.sh DESK PATH` | compile one file as it is in clay, with `-build-file`, and print the error if it fails |
 | `login.sh` | get `+code`, `POST /~/login`, keep the cookie |
 | `curl.sh PATH [ARGS]` | curl the web interface with the cookie (`-sS`, and no `-L` unless you pass it) |

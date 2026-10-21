@@ -7,7 +7,7 @@
 #
 #   -f        replace an existing pier (stopping its ship first)
 #   -n        don't save the snapshot (saves time and 600 MB of disk)
-#   -F FLAKE  install FLAKE#deskjam instead of the repo's working copy,
+#   -F FLAKE  install FLAKE#desk instead of the repo's working copy,
 #             e.g. github:iko-soy/deskjam or "git+file://$PWD?rev=<commit>"
 #
 # Steps: get urbit from nixpkgs and download the pill (once each); boot a
