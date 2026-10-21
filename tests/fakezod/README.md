@@ -1,6 +1,8 @@
 # fakezod test harness
 
-Scripts that boot a local fake ship (`~zod`, with fake networking, so it never talks to the real network) and run deskjam on it. They install the desk that `nix build .#desk` builds, run dojo commands on the ship, drive deskjam's web interface with curl, and collect everything the ship prints in one log. `smoke-test.sh` uses them to upload, install and update a test app through deskjam's web interface, the way a browser would.
+Scripts that boot a local fake ship (`~zod`) and run deskjam on it. They install the desk that `nix build .#desk` builds, run dojo commands on the ship, drive deskjam's web interface with curl, and collect everything the ship prints in one log. `smoke-test.sh` uses them to upload, install and update a test app through deskjam's web interface, the way a browser would.
+
+Fake networking only covers Ames, the network between ships. The ship can reach other fake ships on this machine, but no real ones. Its HTTP requests still go out to the internet. At boot, Landscape's `%docket` downloads the web frontends of `%webterm`, `%landscape` and `%groups`. A url upload to deskjam on this ship fetches the url you give it too.
 
 CI runs `bootstrap.sh -n` and `smoke-test.sh` on pull requests (see `.github/workflows/ci.yml`).
 

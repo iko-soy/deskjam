@@ -12,7 +12,7 @@ Installing and updating need only your ship's web interface, not its files. A fe
   - `desk.bill`, listing the agents to start, such as `:~  %my-app  ==`;
   - `desk.docket-0`, if the app should have a tile in Landscape;
   - the app's agent, such as `app/my-app.hoon`, and every `lib`, `sur`, `mar` and `ted` file it uses, with the files those import in turn, such as `lib/skeleton.hoon` for `lib/default-agent.hoon`;
-  - the usual marks, which Clay builds whenever it commits to or starts a desk with agents: `mar/bill.hoon`, `mar/hoon.hoon`, `mar/kelvin.hoon`, `mar/mime.hoon`, `mar/noun.hoon`, `mar/txt.hoon` and `mar/txt-diff.hoon`, and for a docket, `mar/docket-0.hoon` with the `lib/docket.hoon` and `sur/docket.hoon` it imports. deskjam's own build has them all: after `nix build` in this repo, copy them from `result`. If the desk lacks one, deskjam's confirm page says which, and what needs it.
+  - the usual marks, which Clay builds whenever it commits to or starts a desk with agents: `mar/bill.hoon`, `mar/hoon.hoon`, `mar/kelvin.hoon`, `mar/mime.hoon`, `mar/noun.hoon` and `mar/txt.hoon`, and for a docket, `mar/docket-0.hoon` with the `lib/docket.hoon` and `sur/docket.hoon` it imports. deskjam's own build has them all: after `nix build` in this repo, copy them from `result`. If the desk lacks one that Clay needs, deskjam's confirm page says which, and what needs it.
 
   If the app's repo builds the desk with `mortar build` or `nix build`, that build is this folder. File names must be lowercase, as Clay's are, and end in their mark, such as `app/my-app.hoon` or `desk.bill`.
 
