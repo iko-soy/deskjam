@@ -106,7 +106,7 @@
   ?:  =(' ' i.cs)  $(cs t.cs, n +(n))
   ?:  =('\0a' i.cs)  $(cs t.cs, nl &)
   ?:  &(=(':' i.cs) ?=(^ t.cs) =(':' i.t.cs))
-    $(cs (slag +((fall (find "\0a" `tape`cs) (lent cs))) `tape`cs), nl &)
+    $(cs ?~(e=(find "\0a" `tape`cs) ~ (slag +(u.e) `tape`cs)), nl &)
   [|((gte n 2) nl) cs]
 ::
 ++  white  |=(c=@ |(=(' ' c) =('\0a' c)))
@@ -286,18 +286,18 @@
   ::  /?  and a version, which ford ignores
   ::
   =?  cs  &(?=(^ cs) =('/' i.cs) ?=(^ t.cs) =('?' i.t.cs))
-    (slag +((fall (find "\0a" `tape`cs) (lent cs))) `tape`cs)
+    ?~(e=(find "\0a" `tape`cs) ~ (slag +(u.e) `tape`cs))
   |-  ^-  (unit imports)
   =.  cs  cs:(skip cs)
-  ?.  &(?=(^ cs) =('/' i.cs) ?=(^ t.cs))  `out
+  ?.  &(?=(^ cs) =('/' i.cs) ?=(^ t.cs))  `(forward out)
   =/  run=@  i.t.cs
   =/  one  (skip t.t.cs)
-  ?.  gap.one  `out
+  ?.  gap.one  `(forward out)
   =/  rest=tape  cs.one
   ?:  |(=('-' run) =('+' run))
     ?~  got=(tauts rest)  ~
-    =?  sur.out  =('-' run)  (weld sur.out -.u.got)
-    =?  lib.out  =('+' run)  (weld lib.out -.u.got)
+    =?  sur.out  =('-' run)  (weld (flop -.u.got) sur.out)
+    =?  lib.out  =('+' run)  (weld (flop -.u.got) lib.out)
     $(cs +.u.got)
   ::  the other runes start with a face
   ::
@@ -326,6 +326,15 @@
   ::  /~, or anything else
   ::
   ~
+::
+::  +forward: .imp, gathered in reverse, in the header's order
+::
+++  forward
+  |=  imp=imports
+  ^-  imports
+  :*  (flop sur.imp)  (flop lib.imp)  (flop raw.imp)
+      (flop maz.imp)  (flop caz.imp)  (flop bar.imp)
+  ==
 ::
 ::  +tauts: /- or /+ names: name, face=name or *name, separated by
 ::  commas
@@ -386,8 +395,9 @@
   ::
   |-  ^-  (unit (unit @t))
   ?~  cs  ~
-  =/  lin=tape  (scag (fall (find "\0a" `tape`cs) (lent cs)) `tape`cs)
-  =/  rest=tape  (slag +((lent lin)) `tape`cs)
+  =/  e=(unit @ud)  (find "\0a" `tape`cs)
+  =/  lin=tape  ?~(e cs (scag u.e `tape`cs))
+  =/  rest=tape  ?~(e ~ (slag +(u.e) `tape`cs))
   =/  bod=tape  (skip-spaces lin)
   ?.  =("++  grad" (scag 8 bod))  $(cs rest)
   =/  sep  (skip (weld (slag 8 bod) ['\0a' rest]))

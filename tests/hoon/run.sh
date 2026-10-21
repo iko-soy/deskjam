@@ -14,6 +14,10 @@
 # so the checks see the library's arms. urbit eval exits 0 even when the
 # Hoon crashes, so a test passes when its output has %tests-passed.
 #
+# Some checks give the readers long inputs, which take them under a
+# second each in linear time and minutes in quadratic time, so a test
+# file that runs longer than LIMIT seconds (default 60) fails.
+#
 # Needs `urbit` (vere) on PATH, or URBIT=/path/to/urbit; from the repo,
 # `nix shell --inputs-from . nixpkgs#urbit -c tests/hoon/run.sh` gets it.
 # DESK=DIR tests another copy of the desk. `nix flake check` runs this
@@ -23,6 +27,7 @@ set -euo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 desk=${DESK:-$here/../../desk}
 urbit=${URBIT:-urbit}
+limit=${LIMIT:-60}
 command -v "$urbit" >/dev/null || { echo "run.sh: no $urbit; put urbit on PATH, or set URBIT" >&2; exit 1; }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -54,9 +59,17 @@ for t in "$@"; do
     cord desk-docket "$desk/desk.docket-0"
     cat "$here/$name.hoon"
   } > "$tmp/$name.hoon"
-  "$urbit" eval < "$tmp/$name.hoon" > "$tmp/$name.log" 2>&1 || true
+  status=0
+  if command -v timeout >/dev/null; then
+    timeout "$limit" "$urbit" eval < "$tmp/$name.hoon" > "$tmp/$name.log" 2>&1 || status=$?
+  else
+    "$urbit" eval < "$tmp/$name.hoon" > "$tmp/$name.log" 2>&1 || status=$?
+  fi
   checks=$(grep -c '^?>' "$here/$name.hoon" || true)
-  if grep -q '%tests-passed' "$tmp/$name.log"; then
+  if [[ $status -eq 124 ]]; then
+    echo "$name: FAILED: still running after ${limit}s, so something that should take linear time doesn't"
+    failed=1
+  elif grep -q '%tests-passed' "$tmp/$name.log"; then
     echo "$name: $checks checks passed"
   else
     echo "$name: FAILED. urbit eval printed (a failing check's label comes last):"

@@ -171,6 +171,14 @@
         ?=([~ [* ~]] (read (crip :(weld ":~" (rep 30.000 "  %a") "  =="))))
         =(~ (read (crip :(weld "'" (rep 300.000 "a") "'"))))
     ==
+::  a comment used to cost as much as the rest of the text after it
+::
+=/  coms=@t  '::  a\0a[%zuse 408]  ::  b\0a::\0a[%zuse 409]'
+~|  'read: many comments, in linear time'
+?>  ?&  =((hoon-all coms) (read coms))
+        =(`~ (read (crip (rep 87.381 "::\0a"))))
+        =([& ~] (skip (rep 349.525 "::\0a")))
+    ==
 ::
 ::  +read-imports and +read-grad: a hoon file's ford imports, and what a
 ::  mark hands its diffs to, as clay's ford reads them
@@ -200,6 +208,10 @@
         caz=~[['json' 'mime']]
         bar=~[['svg' /assets/icon/svg]]
     ==
+~|  'read-imports: several lines of each, in order'
+?>  .=  %-  read-imports
+        '/-  d\0a/-  e\0a/+  a\0a/+  b, c\0a/=  f  /lib/x\0a/=  g  /lib/y\0a|%  --'
+    `[~['d' 'e'] ~['a' 'b' 'c'] ~[/lib/x /lib/y] ~ ~ ~]
 ~|  'read-imports: no imports'
 ?>  =(`*imports (read-imports '|%\0a++  a  1\0a--'))
 ~|  'read-imports: /~, which deskjam doesn\'t check'
@@ -213,5 +225,11 @@
 ~|  'read-grad: none, or only in a comment'
 ?>  ?&  =(~ (read-grad '|_  a=@\0a++  grow  %noun\0a--'))
         =(~ (read-grad '::  ++  grad  %noun\0a|_  a=@\0a--'))
+    ==
+~|  'read-imports and read-grad: long files, in linear time'
+?>  ?&  =(`*imports (read-imports (crip (rep 21.845 "::\0a"))))
+        =(10.922 (lent lib:(need (read-imports (crip (rep 10.922 "/+  a\0a"))))))
+        =(~ (read-grad (crip (rep 262.144 "\0a"))))
+        =(~ (read-grad (crip (rep 131.072 "a\0a"))))
     ==
 %tests-passed
