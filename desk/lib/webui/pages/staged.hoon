@@ -55,6 +55,10 @@
   =/  doc  (biff (~(get by mapp) /desk/docket-0) read-docket:hc)
   =/  have=(list desk)  (sort ~(tap in desks:hc) aor)
   =/  exists=?  !=(~ (find ~[from] have))
+  ::  a whole app with an existing desk's name is an update of that desk,
+  ::  and app updates replace the desk, as kiln's do
+  ::
+  =/  update=?  &(exists (~(has by mapp) /sys/kelvin) ?=(^ duz))
   ::  desks kiln overwrites from elsewhere
   ::
   =/  syns  syncs:hc
@@ -109,15 +113,22 @@
             ;p.bad: Careful: {(weld "%" (trip from))} is overwritten from outside ({(sync-tape:hc i.syn)}), so its next update will undo an upload here{stop}.
         ;br;
         ;label
-          ;input(type "radio", name "mode", value "m", checked "checked");
+          ;+  ?:  update
+                ;input(type "radio", name "mode", value "m");
+              ;input(type "radio", name "mode", value "m", checked "checked");
           ; merge into it: add and overwrite files, and keep the rest
         ==
         ;br;
         ;label
-          ;input(type "radio", name "mode", value "r");
+          ;+  ?.  update
+                ;input(type "radio", name "mode", value "r");
+              ;input(type "radio", name "mode", value "r", checked "checked");
           ; replace it: make the desk exactly this upload, deleting files the upload lacks
         ==
         ;br;
+        ;*  ?.  update  ~
+            :_  ~
+            ;p: This upload is a whole app with this desk's name, so replace is selected: app updates replace the desk.
         ;button(type "submit"): next
       ==
     ==

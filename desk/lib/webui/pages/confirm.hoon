@@ -58,7 +58,9 @@
             ;*  %+  turn  errors.pan
                 |=  e=@t
                 ^-  manx
-                ;li: {(trip e)}
+                ;li
+                  ;*  (linked:par (trip e))
+                ==
           ==
         ==
     ;*  ?~  warnings.pan  ~
@@ -69,7 +71,9 @@
             ;*  %+  turn  warnings.pan
                 |=  w=@t
                 ^-  manx
-                ;li: {(trip w)}
+                ;li
+                  ;*  (linked:par (trip w))
+                ==
           ==
         ==
     ;*  (glob-box [mode desk] mapp pan)
@@ -136,7 +140,9 @@
   ;p
     ; To be able to undo this, first
     ;+  link
-    ; . Uploading that copy and choosing Replace puts it back. That usually fails safely when the update changed the state an agent keeps, as the old agent can't load it, and Clay refuses the commit; but an agent that starts afresh from state it can't read, as deskjam does, loses that state instead. If the update changed the hash of a glob your ship serves, also upload the old frontend at /docket/upload.
+    ; . Uploading that copy and choosing Replace puts it back. That usually fails safely when the update changed the state an agent keeps, as the old agent can't load it, and Clay refuses the commit; but an agent that starts afresh from state it can't read, as deskjam does, loses that state instead. If the update changed the hash of a glob your ship serves, also upload the old frontend at
+    ;+  docket-upload:par
+    ;+  ;/  "."
   ==
 ::
 ::  +glob-box: the app's glob, and the option to serve it from our ship
@@ -182,7 +188,7 @@
         ==
     ;p
       ; Setting the hash reloads this page, which clears the boxes below, so set it first. It writes the hash into the desk's docket here, so the app's repo doesn't need it. Your ship's %docket then serves the glob with that hash, to you and to ships that install the app from you. If your ship doesn't have that glob yet, upload it at
-      ;a/"/docket/upload": /docket/upload
+      ;+  docket-upload:par
       ;+  ;/  " once the app is running."
     ==
   ==

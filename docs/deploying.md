@@ -47,7 +47,7 @@ If the app is already published as a deskjam, for example as a GitHub release as
 
 ## 3. Update it
 
-Pack the new version the same way and upload it. On the next page, choose the app's desk under **Update an existing desk**, select **replace it**, and click **next**. Replace makes the desk exactly the upload, so files the new version removed don't linger.
+Pack the new version the same way and upload it. On the next page, **Update an existing desk** already has the app's desk and **replace it** selected, because the upload is a whole app with that desk's name. Click **next**. Replace makes the desk exactly the upload, so files the new version removed don't linger.
 
 The confirm page offers a download of the desk as it is now. Keep it if you might want to go back: uploading it with **replace it** puts the old version back, unless the update changed the state an agent keeps. Then the old agent can't load that state, Clay refuses the commit, and nothing changes.
 
@@ -67,7 +67,7 @@ deskjam can't upload itself onto a ship that doesn't have it yet. Choose one of 
 
 ### Updating deskjam with deskjam
 
-Get the new version into your clone, with `git pull`, and pack it as in step 1. Upload it on `https://your-ship/apps/deskjam`, choose the desk `deskjam` under **Update an existing desk**, select **replace it**, and click **next**. Then click **confirm** on the confirm page. Clay rebuilds deskjam as part of the commit, and the status page that follows comes from the new version.
+Get the new version into your clone, with `git pull`, and pack it as in step 1. Upload it on `https://your-ship/apps/deskjam`. On the next page, **Update an existing desk** already has `deskjam` and **replace it** selected, so click **next**. Then click **confirm** on the confirm page. Clay rebuilds deskjam as part of the commit, and the status page that follows comes from the new version.
 
 If deskjam came from another ship with `|install`, tick **stop kiln syncing** on the confirm page, or that ship's next release replaces your version. If the commit fails, the deskjam you had keeps running, so you can try again.
 

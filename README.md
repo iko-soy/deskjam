@@ -8,14 +8,14 @@ This is a fork of [tinnus-napbus/deskjam](https://github.com/tinnus-napbus/deskj
 
 Apart from the security fixes below, everything upstream deskjam does still works the same way, and stays the default:
 
-- Merging an upload into an existing desk still writes its files and keeps the desk's other files.
+- Merging an upload into an existing desk still writes its files and keeps the desk's other files. It's still the default, except for an app update: then deskjam selects **Replace** (see below).
 - New desks still start suspended.
 - Downloads, subsets and url uploads still work.
 - The old form fields and the old `%new-desk` and `%add-files` pokes still work.
 
 New, and opt-in:
 
-- **Replace**: update a desk so it becomes exactly the upload. Files the upload lacks are deleted, so files a new version of an app removed or renamed don't linger.
+- **Replace**: update a desk so it becomes exactly the upload. Files the upload lacks are deleted, so files a new version of an app removed or renamed don't linger. deskjam selects it for an app update: an upload that is a whole app, with its own `/sys/kelvin` and `/desk/bill`, and has an existing desk's name.
 - **Start after upload**: optionally `|revive` the desk in the same commit.
 - **Stop kiln syncing**: optionally `|pause` a desk that kiln overwrites from a publisher, so their updates don't undo yours. This stops all their updates, not just the next one.
 - **Serve the glob from your ship**: for an app with a glob, set the glob's hash in its docket as you upload, so the app's repo doesn't need the hash of every frontend build. See [Apps with globs](docs/globs.md).
@@ -100,8 +100,10 @@ Upload a deskjam on `[your-domain-name]/apps/deskjam`, from a file or a url. The
 
 - **Install it as a new desk.** New desks start suspended, as with `|new-desk`. On the confirm page you can tick "start its agents after uploading", which does what `|revive` does.
 - **Update an existing desk**, in one of two ways:
-  - **Merge**, the default, writes the upload's files and leaves the desk's other files in place.
+  - **Merge** writes the upload's files and leaves the desk's other files in place.
   - **Replace** makes the desk exactly the upload: files the upload lacks are deleted. Use this to update an app, so files a new version removed or renamed don't linger.
+
+  deskjam selects **Replace** when the upload is a whole app, with its own `/sys/kelvin` and `/desk/bill`, and has the name of an existing desk, as an app update does. For any other upload, it selects **Merge**.
 
 Every upload is a single Clay commit. When the desk is running, Clay rebuilds its agents as part of that commit and reloads those whose code changed. If a file or agent fails to build, or a running agent fails to load its state, Clay rejects the whole commit. The desk stays as it was, the browser shows an error, and your ship's dojo shows why. (An agent that is new to the desk and crashes as it starts doesn't stop the commit.)
 

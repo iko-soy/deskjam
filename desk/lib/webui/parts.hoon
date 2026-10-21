@@ -39,6 +39,29 @@
   ?:  (lte (met 3 seg) 100)  (trip seg)
   (weld (trip (end [3 96] seg)) "...")
 ::
+::  +docket-upload: a link to Landscape's page for uploading a glob, in
+::  a new tab, so the page that names it stays open
+::
+++  docket-upload
+  ^-  manx
+  ;a(href "/docket/upload", target "_blank", rel "noopener"): /docket/upload
+::
+::  +linked: .txt as page nodes, with each /docket/upload in it a link
+::
+++  linked
+  |=  txt=tape
+  ^-  marl
+  =/  pin=tape  "/docket/upload"
+  =|  out=marl
+  |-  ^-  marl
+  ?~  at=(find pin txt)
+    (flop `marl`?~(txt out [;/(txt) out]))
+  =/  pre=tape  (scag u.at txt)
+  %=  $
+    txt  (slag (add u.at (lent pin)) txt)
+    out  [docket-upload ?~(pre out [;/(pre) out])]
+  ==
+::
 ::  +more: a line saying how many files a list leaves out
 ::
 ++  more
