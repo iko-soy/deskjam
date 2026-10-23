@@ -58,6 +58,11 @@ The app's tile icon, [`assets/deskjam.svg`](assets/deskjam.svg), is a copy of up
 CI runs `nix flake check` on every push, and the fake-ship test on pull requests.
 
 ## Installation
+
+`~donmec-sallud` publishes this fork. To install it, run `|install ~donmec-sallud %deskjam` in the dojo. Your ship then gets deskjam's updates from that ship. [shelf.iko.soy](https://shelf.iko.soy) lists all the apps `~donmec-sallud` offers.
+
+To install it from this repo instead:
+
 1. Clone this repo: `git clone https://github.com/iko-soy/deskjam`.
 2. Boot up a ship (fakezod or moon or whatever you use).
 3. `|new-desk %deskjam` to create a new desk called `%deskjam`.
@@ -79,6 +84,8 @@ If your ship already runs upstream deskjam, you can install this fork through it
 This drops any upload you had staged but not yet committed. To install a later version of this fork, upload it the same way and choose **Replace**.
 
 ### Kernel updates
+
+This section is for a deskjam you installed from this repo or uploaded: one installed from `~donmec-sallud` gets new versions from that ship instead.
 
 When Urbit releases a new kernel, your ship suspends every desk whose `sys.kelvin` doesn't list it, and a suspended deskjam can't upload its own update. So before your ship takes a new kernel, install a version of this fork that lists it: get it as a deskjam, as in step 1 above, then upload it with deskjam and choose **Replace**. It still lists your current kernel too, so Clay applies it right away, and deskjam keeps running through the upgrade.
 
